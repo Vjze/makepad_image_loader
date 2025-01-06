@@ -1,0 +1,11 @@
+[package]
+name = "makepad_image_loader"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+makepad-widgets = { git = "https://github.com/makepad/makepad.git", branch = "rik" }
+walkdir = "2.5.0"
+image = { version = "0.25" }
+rfd = "0.15.1"
+
