@@ -16,79 +16,114 @@ live_design!(
                         flow: Down,
                         spacing: 5.0,
                         show_bg: true,
-                        margin: 10.0,
+                        margin: 5.0,
+                        // draw_bg: {
+                        //     fn pixel(self) -> vec4 {
+                        //         let color1 = #98FB98;  // 浅绿色
+                        //         let color2 = #87CEEB;  // 天蓝色
+                        //         return mix(color1, color2, self.pos.y);
+                        //     }
+                        // }
                         <View>{
-                            spacing: 10,
-                            show_bg: true,
                             width: Fill,
-                            height:Fit,
-                            button = <Button> {
-                                height:50,
-                                padding: 5,
-                                text: "选择文件夹"
-                                draw_text:{
-                                    color:#fff,
-                                    text_style: {
-                                    font_size: 14
-                                    }
-                                }
+                            height: Fill,
+                            // margin: 10,
+                            image = <Image> {
+                                width: Fill,
+                                height: Fill,
+                                fit: Contain
                             }
-                            pre_button = <Button> {
-                                height:50,
-                                padding: 5,
-                                text: "上一张"
-                                draw_text:{
-                                    color:#fff,
-                                    text_style: {
-                                    font_size: 14
-                                    }
-                                }
-                            }
-                            next_button = <Button> {
-                                height:50,
-                                padding: 5,
-                                text: "下一张"
-                                draw_text:{
-                                    color:#fff,
-                                    text_style: {
-                                    font_size: 14
-                                    }
-                                }
-                            }
-                            all = <Label> {
-                                padding: 5,
-                                draw_text: {
-                                    text_style: {
-                                        font_size: 16,
-                                    }
-                                }
-                                text: ""
-                            }
-                            now = <Label> {
-                                padding: 5,
-                                draw_text: {
-                                    text_style: {
-                                        font_size: 16,
-                                    }
-                                }
-                                text: ""
-                            }
-                            pixel = <Label> {
-                                padding: 5,
-                                draw_text: {
-                                    text_style: {
-                                        font_size: 16,
-                                    }
-                                }
-                                text: ""
-                            }
-                            
-
                         }
-                        image = <Image> {
-                            height: Fit,
+                        <View>{
+                            spacing: 0,
+                            show_bg: false,
                             width: Fill,
-                            fit: Smallest,
+                            height: Fit,
+                            flow: Right,
+                            align: { x: 0.5, y: 1.0 },
+                            padding: { bottom: 2 },
+                            <View> {
+                                width: 120,
+                                height: Fit,
+                                button = <Button> {
+                                    width: Fill,
+                                    height: 40,
+                                    text: "选择文件夹"
+                                    draw_text:{
+                                        color:#fff,
+                                        text_style: {
+                                            font_size: 14
+                                        }
+                                    }
+                                    draw_bg: {
+                                        uniform border_radius: 5.0
+                                    }
+                                }
+                            }
+                            <View> {
+                                width: 100,
+                                height: Fit,
+                                margin: { left: 10, right: 10 },
+                                pre_button = <Button> {
+                                    width: Fill,
+                                    height: 40,
+                                    text: "上一张"
+                                    draw_text:{
+                                        color:#fff,
+                                        text_style: {
+                                            font_size: 14
+                                        }
+                                    }
+                                }
+                            }
+                            <View> {
+                                width: 100,
+                                height: Fit,
+                                next_button = <Button> {
+                                    width: Fill,
+                                    height: 40,
+                                    text: "下一张"
+                                    draw_text:{
+                                        color:#fff,
+                                        text_style: {
+                                            font_size: 14
+                                        }
+                                    }
+                                }
+                            }
+                            <View> {
+                                width: Fill,
+                                height: Fit,
+                                flow: Right,
+                                align: { x: 1.0, y: 0.5 },
+                                margin: { left: 20 },
+                                all = <Label> {
+                                    margin: { right: 10 },
+                                    draw_text: {
+                                        text_style: {
+                                            font_size: 16,
+                                        }
+                                    }
+                                    text: ""
+                                }
+                                now = <Label> {
+                                    margin: { right: 10 },
+                                    draw_text: {
+                                        text_style: {
+                                            font_size: 16,
+                                        }
+                                    }
+                                    text: ""
+                                }
+                                pixel = <Label> {
+                                    draw_text: {
+                                        text_style: {
+                                            font_size: 16,
+                                        }
+                                    }
+                                    text: ""
+                                }
+                            }
                         }
                     }
 
