@@ -1,11 +1,55 @@
 [package]
-name = "makepad_image_loader"
+name = "img_loader"
 version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-makepad-widgets = { git = "https://github.com/makepad/makepad.git", branch = "rik" }
+makepad-widgets = { version = "1.0.0"}
 walkdir = "2.5.0"
-image = { version = "0.25" }
+# image = { version = "0.25" }
 rfd = "0.15.1"
-tokio = { version = "1.35", features = ["full"] }
+
+[package.metadata.packager]
+product_name = "img_loader"
+identifier = "org.wjz.img_loader"
+
+icons = ["packaging/l.png"]
+out_dir = "./dist"
+
+
+before-packaging-command = "cargo build --release"
+
+
+## See the above paragraph comments for more info on how we create/populate the below `src` directories.
+resources = [
+    "src/resources"
+]
+
+[package.metadata.packager.deb]
+depends = "./dist/depends_deb.txt"
+desktop_template = "./packaging/img_loader.desktop"
+section = "utils"
+
+[package.metadata.packager.macos]
+minimum_system_version = "11.0"
+frameworks = [ ]
+info_plist_path = "./packaging/Info.plist"
+entitlements = "./packaging/Entitlements.plist"
+signing_identity = "Developer ID Application: AppChef Inc. (SFVQ5V48GD)"
+
+
+## Configuration for `cargo packager`'s generation of a macOS `.dmg`.
+[package.metadata.packager.dmg]
+background = "./packaging/Robrix macOS dmg background.png"
+window_size = { width = 960, height = 540 }
+app_position = { x = 200, y = 250 }
+application_folder_position = { x = 760, y = 250 }
+
+
+## Configuration for `cargo packager`'s generation of a Windows `.exe` setup installer.
+[package.metadata.packager.nsis]
+## See this: <https://nsis.sourceforge.io/Docs/Chapter4.html#varconstant>
+appdata_paths = [
+    "$APPDATA/$PUBLISHER/$PRODUCTNAME",
+    "$LOCALAPPDATA/$PRODUCTNAME",
+]

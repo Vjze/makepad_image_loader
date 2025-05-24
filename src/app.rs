@@ -1,173 +1,239 @@
-use std::sync::{Arc, Mutex};
-
 use makepad_widgets::*;
-use tokio::runtime::Runtime;
-live_design!(
-    use link::theme::*;
-    use link::shaders::*;
+use std::path::PathBuf;
+live_design! {
     use link::widgets::*;
 
-    App = {{App}} {
-            ui: <Root>{
-                main_window = <Window>{
-                    caption_bar = {
-                        visible: true,
-                        margin: {left: -100},
-                        caption_label = { label = {text: "Image_Loader"} }
-                    },
-                    body = <View>{
-                        flow: Down,
-                        spacing: 5.0,
-                        show_bg: true,
-                        margin: 5.0,
-                        // draw_bg: {
-                        //     fn pixel(self) -> vec4 {
-                        //         let color1 = #98FB98;  // 浅绿色
-                        //         let color2 = #87CEEB;  // 天蓝色
-                        //         return mix(color1, color2, self.pos.y);
-                        //     }
-                        // }
-                        <View>{
-                            width: Fill,
-                            height: Fill,
-                            // margin: 10,
-                            image = <Image> {
-                                width: Fill,
-                                height: Fill,
-                                fit: Contain
-                            }
-                        }
-                        <View>{
-                            spacing: 0,
-                            show_bg: false,
-                            width: Fill,
-                            height: Fit,
-                            flow: Right,
-                            align: { x: 0.0, y: 1.0 },
-                            padding: { bottom: 2 },
-                            <View> {
-                                width: 120,
-                                height: Fit,
-                                button = <Button> {
-                                    width: Fill,
-                                    height: 40,
-                                    text: "选择文件夹"
-                                    draw_text:{
-                                        color:#fff,
-                                        text_style: {
-                                            font_size: 14
-                                        }
-                                    }
-                                    draw_bg: {
-                                        uniform border_radius: 5.0
-                                    }
-                                }
-                            }
-                            <View> {
-                                width: 100,
-                                height: Fit,
-                                margin: { left: 10, right: 10 },
-                                pre_button = <Button> {
-                                    width: Fill,
-                                    height: 40,
-                                    text: "上一张"
-                                    draw_text:{
-                                        color:#fff,
-                                        text_style: {
-                                            font_size: 14
-                                        }
-                                    }
-                                }
-                            }
-                            <View> {
-                                width: 100,
-                                height: Fit,
-                                next_button = <Button> {
-                                    width: Fill,
-                                    height: 40,
-                                    text: "下一张"
-                                    draw_text:{
-                                        color:#fff,
-                                        text_style: {
-                                            font_size: 14
-                                        }
-                                    }
-                                }
-                            }
-                            <View> {
-                                width: Fill,
-                                height: Fit,
-                                flow: Right,
-                                align: { x: 1.0, y: 1.0 },
-                                margin: { left: 20 },
-                                all = <Label> {
-                                    margin: { right: 10 },
-                                    draw_text: {
-                                        text_style: {
-                                            font_size: 16,
-                                        }
-                                    }
-                                    text: ""
-                                }
-                                now = <Label> {
-                                    margin: { right: 10 },
-                                    draw_text: {
-                                        text_style: {
-                                            font_size: 16,
-                                        }
-                                    }
-                                    text: ""
-                                }
-                                pixel = <Label> {
-                                    draw_text: {
-                                        text_style: {
-                                            font_size: 16,
-                                        }
-                                    }
-                                    text: ""
-                                }
-                            }
-                        }
-                    }
+    LEFT_ARROW = dep("crate://self/resources/left_arrow.svg");
+    RIGHT_ARROW = dep("crate://self/resources/right_arrow.svg");
+    LOOKING_GLASS = dep("crate://self/resources/looking_glass.svg");
 
+    SearchBox = <View> {
+        width: Fill,
+        height: Fit,
+        align: { y: 0.5 }
+        margin: { left: 5 }
+
+        <Icon> {
+            icon_walk: { width: 12.0 }
+            draw_icon: {
+                color: #8,
+                svg_file: (LOOKING_GLASS)
+            }
+        }
+
+        query = <TextInput> {
+            empty_text: "Search",
+            draw_text: {
+                text_style: { font_size: 10 },
+                color: #8
+            }
+        }
+        <Filler> {}
+        all =  <Label> {
+            text: "共: 0张",
+        }
+        
+        
+    }
+    State_bar = <View> {
+        width: Fill,
+        height: Fit,
+        align: { y: 0.5 }
+        margin: { right: 5 }
+        
+        search_btn = <Button> {
+            text: "打开文件夹",
+        }
+        <Filler> {}
+        slideshow_button = <Button> {
+            text: "幻灯片模式"
+        }
+    }
+    MenuBar = <View> {
+        width: Fill,
+        height: Fit,
+        align: { y: 0.5 }
+        margin: { left: 5 }
+        <SearchBox> {}
+        <Filler> {}
+        <State_bar> {}
+    }
+
+    ImageItem = <View> {
+        width: 256,
+        height: 256,
+
+        image = <Image> {
+            width: Fill,
+            height: Fill,
+            fit: Biggest,
+            // source: (PLACEHOLDER)
+        }
+    }
+
+    ImageRow = {{ImageRow}} {
+        <PortalList> {
+            height: 256,
+            flow: Right,
+
+            ImageItem = <ImageItem> {}
+        }
+    }
+
+    ImageGrid = {{ImageGrid}} {
+        <PortalList> {
+            flow: Down,
+
+            ImageRow = <ImageRow> {}
+        }
+    }
+
+    ImageBrowser = <View> {
+        flow: Down,
+
+        <MenuBar> {}
+        <ImageGrid> {}
+    }
+
+    SlideshowNavigateButton = <Button> {
+        width: 50,
+        height: Fill,
+        draw_bg: {
+            color: #fff0,
+            color_down: #fff2,
+        }
+        icon_walk: { width: 9 },
+        text: "",
+        grab_key_focus: false,
+    }
+
+    SlideshowOverlay = <View> {
+        height: Fill,
+        width: Fill,
+        cursor: Arrow,
+        capture_overload: true,
+
+        navigate_left = <SlideshowNavigateButton> {
+            draw_icon: { svg_file: (LEFT_ARROW) }
+        }
+        <Filler> {}
+        navigate_right = <SlideshowNavigateButton> {
+            draw_icon: { svg_file: (RIGHT_ARROW) }
+        }
+    }
+
+    Slideshow = <View> {
+        flow: Overlay,
+
+        image = <Image> {
+            width: Fill,
+            height: Fill,
+            fit: Biggest,
+            // source: (PLACEHOLDER)
+        }
+        overlay = <SlideshowOverlay> {}
+    }
+    App = {{App}} {
+        ui: <Root> {
+            main_window = <Window> {
+                caption_bar = {
+                    visible: true,
+                    margin: {left: -100},
+                    caption_label = { label = {text: "Image_Loader"} }
+                },
+                body = <RoundedAllView> {
+                    page_flip = <PageFlip> {
+                        active_page: image_browser,
+                        image_browser = <ImageBrowser> {}
+                        slideshow = <Slideshow> {}
+                    }
                 }
             }
         }
-);
-app_main!(App);
+    }
+}
 
 #[derive(Live, LiveHook)]
 pub struct App {
     #[live]
     ui: WidgetRef,
     #[rust]
-    now: usize,
-    #[rust]
-    list: Arc<Mutex<Vec<String>>>,
-    #[rust(Runtime::new().unwrap())]
-    rt: Runtime,
+    state: State,
 }
+impl App {
+    fn load_image_paths(&mut self, cx: &mut Cx) {
+        self.state.image_paths.clear();
+        if let Some(p) = rfd::FileDialog::new().pick_folder() {
+            let path = p.to_path_buf();
 
+            for entry in walkdir::WalkDir::new(path)
+                .into_iter()
+                .filter_map(Result::ok)
+                .filter(|e| is_image_file(e.file_name().to_str().unwrap().to_string()))
+            {
+                let file_path = entry.path().to_path_buf();
+                self.state.image_paths.push(file_path);
+            }
+
+            self.ui
+                .label(id!(all))
+                .set_text(cx, &format!("共: {}张", self.state.image_paths.len()));
+
+            let query = self.ui.text_input(id!(query)).text();
+            self.filter_image_paths(cx, &query);
+        }
+    }
+    pub fn filter_image_paths(&mut self, cx: &mut Cx, query: &str) {
+        self.state.filtered_image_idxs.clear();
+        for (image_idx, image_path) in self.state.image_paths.iter().enumerate() {
+            if image_path.to_str().unwrap().contains(&query) {
+                self.state.filtered_image_idxs.push(image_idx);
+            }
+        }
+        if self.state.filtered_image_idxs.is_empty() {
+            self.set_current_image(cx, None);
+        } else {
+            self.set_current_image(cx, Some(0));
+        }
+    }
+    fn navigate_left(&mut self, cx: &mut Cx) {
+        if let Some(image_idx) = self.state.current_image_idx {
+            if image_idx > 0 {
+                self.set_current_image(cx, Some(image_idx - 1));
+            }
+        }
+    }
+
+    fn navigate_right(&mut self, cx: &mut Cx) {
+        if let Some(image_idx) = self.state.current_image_idx {
+            if image_idx + 1 < self.state.num_images() {
+                self.set_current_image(cx, Some(image_idx + 1));
+            }
+        }
+    }
+
+    fn set_current_image(&mut self, cx: &mut Cx, image_idx: Option<usize>) {
+        self.state.current_image_idx = image_idx;
+        let image = self.ui.image(id!(slideshow.image));
+        if let Some(image_idx) = self.state.current_image_idx {
+            let filtered_image_idx = self.state.filtered_image_idxs[image_idx];
+            let image_path = &self.state.image_paths[filtered_image_idx];
+            image
+                .load_image_file_by_path_async(cx, &image_path)
+                .unwrap();
+            
+            
+        } else {
+            image.load_image_dep_by_path(cx, "").unwrap();
+        }
+        self.ui.redraw(cx);
+    }
+}
 impl AppMain for App {
     fn handle_event(&mut self, cx: &mut Cx, event: &Event) {
-        match event {
-            Event::KeyDown(key_event) => {
-                if key_event.key_code == KeyCode::ArrowUp {
-                    self.pre(cx);
-                } else if key_event.key_code == KeyCode::ArrowDown {
-                    self.next(cx);
-                } else if key_event.key_code == KeyCode::ArrowLeft {
-                    self.pre(cx);
-                } else if key_event.key_code == KeyCode::ArrowRight {
-                    self.next(cx);
-                }
-            }
-            _ => (),
-        };
         self.match_event(cx, event);
-        self.ui_runner()
-            .handle(cx, event, &mut Scope::empty(), self);
-        self.ui.handle_event(cx, event, &mut Scope::empty());
+        let mut scope = Scope::with_data(&mut self.state);
+        self.ui.handle_event(cx, event, &mut scope);
     }
 }
 
@@ -178,119 +244,37 @@ impl LiveRegister for App {
 }
 impl MatchEvent for App {
     fn handle_actions(&mut self, cx: &mut Cx, actions: &Actions) {
-        if self.ui.button(id!(button)).clicked(&actions) {
-            self.serch(cx);
+        if let Some(query) = self.ui.text_input(id!(query)).changed(&actions) {
+            self.filter_image_paths(cx, &query);
         }
-        if self.ui.button(id!(next_button)).clicked(&actions) {
-            self.next(cx);
+        if self.ui.button(id!(search_btn)).clicked(&actions) {
+            self.load_image_paths(cx);
         }
-        if self.ui.button(id!(pre_button)).clicked(&actions) {
-            self.pre(cx);
+        if self.ui.button(id!(slideshow_button)).clicked(&actions) {
+            self.ui
+                .page_flip(id!(page_flip))
+                .set_active_page(cx, live_id!(slideshow));
         }
-        self.ui.redraw(cx);
-    }
-}
-impl App {
-    fn serch(&mut self, _cx: &mut Cx) {
-        // 在主线程打开文件对话框
-        if let Some(p) = rfd::FileDialog::new().pick_folder() {
-            let path = p.to_path_buf();
-            let list = Arc::clone(&self.list);
-            let ui = self.ui_runner();
 
-            // 在后台线程处理文件搜索
-            let task = async move {
-                let mut list_vec = vec![];
-                for entry in walkdir::WalkDir::new(path)
-                    .into_iter()
-                    .filter_map(Result::ok)
-                    .filter(|e| is_image_file(e.file_name().to_str().unwrap().to_string()))
-                {
-                    let file_path = entry.path().display().to_string();
-                    list_vec.push(file_path);
+        if self.ui.button(id!(navigate_left)).clicked(&actions) {
+            self.navigate_left(cx);
+        }
+        if self.ui.button(id!(navigate_right)).clicked(&actions) {
+            self.navigate_right(cx);
+        }
+
+        if let Some(event) = self.ui.view(id!(slideshow.overlay)).key_down(&actions) {
+            match event.key_code {
+                KeyCode::Escape => {
+                    self.ui
+                        .page_flip(id!(page_flip))
+                        .set_active_page(cx, live_id!(image_browser));
                 }
-                list_vec
-            };
-
-            self.rt.spawn(async move {
-                let lists = task.await;
-                let len = lists.len();
-                *list.lock().unwrap() = lists;
-
-                ui.defer(move |app, cx, _| {
-                    app.ui.label(id!(all)).set_text(&format!("共: {}张", len));
-                    if len > 0 {
-                        // 更新当前索引
-                        app.now = 1;
-                        // 获取第一张图片
-                        if let Ok(list) = app.list.try_lock() {
-                            if let Some(path) = list.get(0) {
-                                // 更新当前图片索引文本
-                                app.ui
-                                    .label(id!(now))
-                                    .set_text(&format!("当前第: {}张", app.now));
-                                // 加载图片
-                                let i = app.ui.image(id!(image));
-                                let _ = i.load_image_file_by_path(cx, path);
-                                // 更新分辨率信息
-                                if let Some(size) = i.size_in_pixels(cx) {
-                                    let pixel = format!("分辨率:{}*{}", size.0, size.1);
-                                    app.ui.label(id!(pixel)).set_text(&pixel);
-                                }
-                            }
-                        }
-                    }
-                });
-            });
-        
+                KeyCode::ArrowLeft => self.navigate_left(cx),
+                KeyCode::ArrowRight => self.navigate_right(cx),
+                _ => {}
+            }
         }
-    }
-    fn pre(&mut self, cx: &mut Cx) {
-        let l = self.list.clone();
-        let list = l.try_lock().unwrap();
-        let mut now = 0;
-        self.now -= 1;
-        if self.now <= 0 {
-            now = list.len() - 1;
-            self.now = list.len();
-        } else {
-            let x = self.now.clone() - 1;
-            now = x as usize;
-        }
-        let now_text = "当前第: ".to_string() + self.now.to_string().as_str() + "张";
-        self.ui.label(id!(now)).set_text_and_redraw(cx, &now_text);
-        let i = self.ui.image(id!(image));
-        let path = list.get(now as usize).unwrap();
-        let _ = i.load_image_file_by_path(cx, &path);
-        let size = self.ui.image(id!(image)).size_in_pixels(cx).unwrap();
-        let width = size.0.to_string();
-        let height = size.1.to_string();
-        let pixel = "分辨率:".to_string() + width.as_str() + "*" + height.as_str();
-        self.ui.label(id!(pixel)).set_text_and_redraw(cx, &pixel);
-    }
-    fn next(&mut self, cx: &mut Cx) {
-        let l = self.list.clone();
-        let list = l.try_lock().unwrap();
-        let mut now = 0;
-        self.now += 1;
-        if self.now - 1 >= list.len() {
-            now = 0;
-            self.now = 1;
-        } else {
-            let x = self.now.clone() - 1;
-            now = x as usize;
-        }
-
-        let now_text = "当前第: ".to_string() + self.now.to_string().as_str() + "张";
-        self.ui.label(id!(now)).set_text_and_redraw(cx, &now_text);
-        let i = self.ui.image(id!(image));
-        let path = list.get(now).unwrap();
-        let _ = i.load_image_file_by_path(cx, &path);
-        let size = self.ui.image(id!(image)).size_in_pixels(cx).unwrap();
-        let width = size.0.to_string();
-        let height = size.1.to_string();
-        let pixel = "分辨率:".to_string() + width.as_str() + "*" + height.as_str();
-        self.ui.label(id!(pixel)).set_text_and_redraw(cx, &pixel);
     }
 }
 
@@ -306,3 +290,114 @@ fn is_image_file(f: String) -> bool {
     }
     return false;
 }
+#[derive(Debug)]
+pub struct State {
+    image_paths: Vec<PathBuf>,
+    filtered_image_idxs: Vec<usize>,
+    max_images_per_row: usize,
+    current_image_idx: Option<usize>,
+}
+
+impl State {
+    fn num_images(&self) -> usize {
+        self.filtered_image_idxs.len()
+    }
+
+    fn num_rows(&self) -> usize {
+        self.num_images().div_ceil(self.max_images_per_row)
+    }
+
+    fn first_image_idx_for_row(&self, row_idx: usize) -> usize {
+        row_idx * self.max_images_per_row
+    }
+
+    fn num_images_for_row(&self, row_idx: usize) -> usize {
+        let first_image_idx = self.first_image_idx_for_row(row_idx);
+        let num_remaining_images = self.num_images() - first_image_idx;
+        self.max_images_per_row.min(num_remaining_images)
+    }
+}
+
+impl Default for State {
+    fn default() -> Self {
+        Self {
+            image_paths: Vec::new(),
+            filtered_image_idxs: Vec::new(),
+            max_images_per_row: 4,
+            current_image_idx: None,
+        }
+    }
+}
+
+#[derive(Live, LiveHook, Widget)]
+pub struct ImageGrid {
+    #[deref]
+    view: View,
+}
+
+impl Widget for ImageGrid {
+    fn draw_walk(&mut self, cx: &mut Cx2d, scope: &mut Scope, walk: Walk) -> DrawStep {
+        while let Some(item) = self.view.draw_walk(cx, scope, walk).step() {
+            if let Some(mut list) = item.as_portal_list().borrow_mut() {
+                let state = scope.data.get_mut::<State>().unwrap();
+
+                list.set_item_range(cx, 0, state.num_rows());
+                while let Some(row_idx) = list.next_visible_item(cx) {
+                    if row_idx >= state.num_rows() {
+                        continue;
+                    }
+
+                    let row = list.item(cx, row_idx, live_id!(ImageRow));
+                    let mut scope = Scope::with_data_props(state, &row_idx);
+                    row.draw_all(cx, &mut scope);
+                }
+            }
+        }
+        DrawStep::done()
+    }
+
+    fn handle_event(&mut self, cx: &mut Cx, event: &Event, scope: &mut Scope) {
+        self.view.handle_event(cx, event, scope)
+    }
+}
+
+#[derive(Live, LiveHook, Widget)]
+pub struct ImageRow {
+    #[deref]
+    view: View,
+}
+
+impl Widget for ImageRow {
+    fn draw_walk(&mut self, cx: &mut Cx2d, scope: &mut Scope, walk: Walk) -> DrawStep {
+        while let Some(item) = self.view.draw_walk(cx, scope, walk).step() {
+            if let Some(mut list) = item.as_portal_list().borrow_mut() {
+                let state = scope.data.get_mut::<State>().unwrap();
+                let row_idx = *scope.props.get::<usize>().unwrap();
+
+                list.set_item_range(cx, 0, state.num_images_for_row(row_idx));
+                while let Some(item_idx) = list.next_visible_item(cx) {
+                    if item_idx >= state.num_images_for_row(row_idx) {
+                        continue;
+                    }
+
+                    let item = list.item(cx, item_idx, live_id!(ImageItem));
+                    let image_idx = state.first_image_idx_for_row(row_idx) + item_idx;
+                    let filtered_image_idx = state.filtered_image_idxs[image_idx];
+                    let image_path = &state.image_paths[filtered_image_idx];
+                    let image = item.image(id!(image));
+                    image
+                        .load_image_file_by_path_async(cx, &image_path)
+                        .unwrap();
+                    item.draw_all(cx, &mut Scope::empty());
+                }
+            }
+        }
+        DrawStep::done()
+    }
+
+    fn handle_event(&mut self, cx: &mut Cx, event: &Event, scope: &mut Scope) {
+        self.view.handle_event(cx, event, scope)
+    }
+}
+
+app_main!(App);
