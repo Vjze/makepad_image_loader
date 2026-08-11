@@ -1,0 +1,700 @@
+warning: falling back to `f32` as the trait bound `f32: From<f64>` is not satisfied
+   --> D:\rust\makepad\platform\src\window.rs:392:12
+    |
+392 |     #[live(1.0)]
+    |            ^^^ help: explicitly specify the type as `f32`: `1.0_f32`
+    |
+    = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+    = note: for more information, see issue #154024 <https://github.com/rust-lang/rust/issues/154024>
+    = note: `#[warn(float_literal_f32_fallback)]` (part of `#[warn(future_incompatible)]`) on by default
+
+warning: `makepad-platform` (lib) generated 1 warning (run `cargo fix --lib -p makepad-platform` to apply 1 suggestion)
+warning: falling back to `f32` as the trait bound `f32: From<f64>` is not satisfied
+  --> D:\rust\makepad\draw\src\shader\draw_cube.rs:81:12
+   |
+81 |     #[live(1.0)]
+   |            ^^^ help: explicitly specify the type as `f32`: `1.0_f32`
+   |
+   = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+   = note: for more information, see issue #154024 <https://github.com/rust-lang/rust/issues/154024>
+   = note: `#[warn(float_literal_f32_fallback)]` (part of `#[warn(future_incompatible)]`) on by default
+
+warning: falling back to `f32` as the trait bound `f32: From<f64>` is not satisfied
+   --> D:\rust\makepad\draw\src\shader\draw_glyph.rs:584:12
+    |
+584 |     #[live(0.0)]
+    |            ^^^ help: explicitly specify the type as `f32`: `0.0_f32`
+    |
+    = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+    = note: for more information, see issue #154024 <https://github.com/rust-lang/rust/issues/154024>
+
+warning: falling back to `f32` as the trait bound `f32: From<f64>` is not satisfied
+   --> D:\rust\makepad\draw\src\shader\draw_glyph.rs:586:12
+    |
+586 |     #[live(1.0)]
+    |            ^^^ help: explicitly specify the type as `f32`: `1.0_f32`
+    |
+    = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+    = note: for more information, see issue #154024 <https://github.com/rust-lang/rust/issues/154024>
+
+warning: falling back to `f32` as the trait bound `f32: From<f64>` is not satisfied
+   --> D:\rust\makepad\draw\src\shader\draw_glyph.rs:600:12
+    |
+600 |     #[live(512.0)]
+    |            ^^^^^ help: explicitly specify the type as `f32`: `512.0_f32`
+    |
+    = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+    = note: for more information, see issue #154024 <https://github.com/rust-lang/rust/issues/154024>
+
+warning: falling back to `f32` as the trait bound `f32: From<f64>` is not satisfied
+   --> D:\rust\makepad\draw\src\shader\draw_glyph.rs:602:12
+    |
+602 |     #[live(0.0)]
+    |            ^^^ help: explicitly specify the type as `f32`: `0.0_f32`
+    |
+    = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+    = note: for more information, see issue #154024 <https://github.com/rust-lang/rust/issues/154024>
+
+warning: falling back to `f32` as the trait bound `f32: From<f64>` is not satisfied
+   --> D:\rust\makepad\draw\src\shader\draw_glyph.rs:604:12
+    |
+604 |     #[live(0.0)]
+    |            ^^^ help: explicitly specify the type as `f32`: `0.0_f32`
+    |
+    = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+    = note: for more information, see issue #154024 <https://github.com/rust-lang/rust/issues/154024>
+
+warning: falling back to `f32` as the trait bound `f32: From<f64>` is not satisfied
+   --> D:\rust\makepad\draw\src\shader\draw_glyph.rs:606:12
+    |
+606 |     #[live(0.0)]
+    |            ^^^ help: explicitly specify the type as `f32`: `0.0_f32`
+    |
+    = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+    = note: for more information, see issue #154024 <https://github.com/rust-lang/rust/issues/154024>
+
+warning: falling back to `f32` as the trait bound `f32: From<f64>` is not satisfied
+   --> D:\rust\makepad\draw\src\shader\draw_glyph.rs:608:12
+    |
+608 |     #[live(0.0)]
+    |            ^^^ help: explicitly specify the type as `f32`: `0.0_f32`
+    |
+    = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+    = note: for more information, see issue #154024 <https://github.com/rust-lang/rust/issues/154024>
+
+warning: falling back to `f32` as the trait bound `f32: From<f64>` is not satisfied
+   --> D:\rust\makepad\draw\src\shader\draw_glyph.rs:610:12
+    |
+610 |     #[live(0.125)]
+    |            ^^^^^ help: explicitly specify the type as `f32`: `0.125_f32`
+    |
+    = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+    = note: for more information, see issue #154024 <https://github.com/rust-lang/rust/issues/154024>
+
+warning: falling back to `f32` as the trait bound `f32: From<f64>` is not satisfied
+   --> D:\rust\makepad\draw\src\shader\draw_glyph.rs:612:12
+    |
+612 |     #[live(0.0)]
+    |            ^^^ help: explicitly specify the type as `f32`: `0.0_f32`
+    |
+    = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+    = note: for more information, see issue #154024 <https://github.com/rust-lang/rust/issues/154024>
+
+warning: falling back to `f32` as the trait bound `f32: From<f64>` is not satisfied
+   --> D:\rust\makepad\draw\src\shader\draw_pbr.rs:884:12
+    |
+884 |     #[rust(1.0)]
+    |            ^^^ help: explicitly specify the type as `f32`: `1.0_f32`
+    |
+    = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+    = note: for more information, see issue #154024 <https://github.com/rust-lang/rust/issues/154024>
+
+warning: falling back to `f32` as the trait bound `f32: From<f64>` is not satisfied
+   --> D:\rust\makepad\draw\src\shader\draw_pbr.rs:886:12
+    |
+886 |     #[rust(1.0)]
+    |            ^^^ help: explicitly specify the type as `f32`: `1.0_f32`
+    |
+    = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+    = note: for more information, see issue #154024 <https://github.com/rust-lang/rust/issues/154024>
+
+warning: falling back to `f32` as the trait bound `f32: From<f64>` is not satisfied
+   --> D:\rust\makepad\draw\src\shader\draw_pbr.rs:890:12
+    |
+890 |     #[rust(1.0)]
+    |            ^^^ help: explicitly specify the type as `f32`: `1.0_f32`
+    |
+    = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+    = note: for more information, see issue #154024 <https://github.com/rust-lang/rust/issues/154024>
+
+warning: falling back to `f32` as the trait bound `f32: From<f64>` is not satisfied
+   --> D:\rust\makepad\draw\src\shader\draw_pbr.rs:892:12
+    |
+892 |     #[rust(1.0)]
+    |            ^^^ help: explicitly specify the type as `f32`: `1.0_f32`
+    |
+    = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+    = note: for more information, see issue #154024 <https://github.com/rust-lang/rust/issues/154024>
+
+warning: falling back to `f32` as the trait bound `f32: From<f64>` is not satisfied
+   --> D:\rust\makepad\draw\src\shader\draw_pbr.rs:894:12
+    |
+894 |     #[rust(0.0)]
+    |            ^^^ help: explicitly specify the type as `f32`: `0.0_f32`
+    |
+    = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+    = note: for more information, see issue #154024 <https://github.com/rust-lang/rust/issues/154024>
+
+warning: falling back to `f32` as the trait bound `f32: From<f64>` is not satisfied
+   --> D:\rust\makepad\draw\src\shader\draw_pbr.rs:896:12
+    |
+896 |     #[rust(0.0)]
+    |            ^^^ help: explicitly specify the type as `f32`: `0.0_f32`
+    |
+    = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+    = note: for more information, see issue #154024 <https://github.com/rust-lang/rust/issues/154024>
+
+warning: falling back to `f32` as the trait bound `f32: From<f64>` is not satisfied
+   --> D:\rust\makepad\draw\src\shader\draw_pbr.rs:898:12
+    |
+898 |     #[rust(0.0)]
+    |            ^^^ help: explicitly specify the type as `f32`: `0.0_f32`
+    |
+    = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+    = note: for more information, see issue #154024 <https://github.com/rust-lang/rust/issues/154024>
+
+warning: falling back to `f32` as the trait bound `f32: From<f64>` is not satisfied
+   --> D:\rust\makepad\draw\src\shader\draw_pbr.rs:900:12
+    |
+900 |     #[rust(0.0)]
+    |            ^^^ help: explicitly specify the type as `f32`: `0.0_f32`
+    |
+    = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+    = note: for more information, see issue #154024 <https://github.com/rust-lang/rust/issues/154024>
+
+warning: falling back to `f32` as the trait bound `f32: From<f64>` is not satisfied
+   --> D:\rust\makepad\draw\src\shader\draw_pbr.rs:902:12
+    |
+902 |     #[rust(0.0)]
+    |            ^^^ help: explicitly specify the type as `f32`: `0.0_f32`
+    |
+    = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+    = note: for more information, see issue #154024 <https://github.com/rust-lang/rust/issues/154024>
+
+warning: falling back to `f32` as the trait bound `f32: From<f64>` is not satisfied
+   --> D:\rust\makepad\draw\src\shader\draw_pbr.rs:904:12
+    |
+904 |     #[rust(0.0)]
+    |            ^^^ help: explicitly specify the type as `f32`: `0.0_f32`
+    |
+    = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+    = note: for more information, see issue #154024 <https://github.com/rust-lang/rust/issues/154024>
+
+warning: falling back to `f32` as the trait bound `f32: From<f64>` is not satisfied
+   --> D:\rust\makepad\draw\src\shader\draw_pbr.rs:906:12
+    |
+906 |     #[rust(0.0)]
+    |            ^^^ help: explicitly specify the type as `f32`: `0.0_f32`
+    |
+    = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+    = note: for more information, see issue #154024 <https://github.com/rust-lang/rust/issues/154024>
+
+warning: falling back to `f32` as the trait bound `f32: From<f64>` is not satisfied
+   --> D:\rust\makepad\draw\src\shader\draw_pbr.rs:908:12
+    |
+908 |     #[rust(0.0)]
+    |            ^^^ help: explicitly specify the type as `f32`: `0.0_f32`
+    |
+    = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+    = note: for more information, see issue #154024 <https://github.com/rust-lang/rust/issues/154024>
+
+warning: falling back to `f32` as the trait bound `f32: From<f64>` is not satisfied
+   --> D:\rust\makepad\draw\src\shader\draw_pbr.rs:914:12
+    |
+914 |     #[rust(0.15)]
+    |            ^^^^ help: explicitly specify the type as `f32`: `0.15_f32`
+    |
+    = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+    = note: for more information, see issue #154024 <https://github.com/rust-lang/rust/issues/154024>
+
+warning: falling back to `f32` as the trait bound `f32: From<f64>` is not satisfied
+   --> D:\rust\makepad\draw\src\shader\draw_pbr.rs:916:12
+    |
+916 |     #[rust(128.0)]
+    |            ^^^^^ help: explicitly specify the type as `f32`: `128.0_f32`
+    |
+    = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+    = note: for more information, see issue #154024 <https://github.com/rust-lang/rust/issues/154024>
+
+warning: falling back to `f32` as the trait bound `f32: From<f64>` is not satisfied
+   --> D:\rust\makepad\draw\src\shader\draw_pbr.rs:918:12
+    |
+918 |     #[rust(0.9)]
+    |            ^^^ help: explicitly specify the type as `f32`: `0.9_f32`
+    |
+    = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+    = note: for more information, see issue #154024 <https://github.com/rust-lang/rust/issues/154024>
+
+warning: falling back to `f32` as the trait bound `f32: From<f64>` is not satisfied
+   --> D:\rust\makepad\draw\src\shader\draw_pbr.rs:920:12
+    |
+920 |     #[rust(1.8)]
+    |            ^^^ help: explicitly specify the type as `f32`: `1.8_f32`
+    |
+    = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+    = note: for more information, see issue #154024 <https://github.com/rust-lang/rust/issues/154024>
+
+warning: falling back to `f32` as the trait bound `f32: From<f64>` is not satisfied
+   --> D:\rust\makepad\draw\src\shader\draw_pbr.rs:922:12
+    |
+922 |     #[rust(0.0)]
+    |            ^^^ help: explicitly specify the type as `f32`: `0.0_f32`
+    |
+    = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+    = note: for more information, see issue #154024 <https://github.com/rust-lang/rust/issues/154024>
+
+warning: falling back to `f32` as the trait bound `f32: From<f64>` is not satisfied
+   --> D:\rust\makepad\draw\src\shader\draw_pbr.rs:932:12
+    |
+932 |     #[live(0.0)]
+    |            ^^^ help: explicitly specify the type as `f32`: `0.0_f32`
+    |
+    = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+    = note: for more information, see issue #154024 <https://github.com/rust-lang/rust/issues/154024>
+
+warning: falling back to `f32` as the trait bound `f32: From<f64>` is not satisfied
+  --> D:\rust\makepad\draw\src\shader\draw_quad.rs:91:12
+   |
+91 |     #[live(1.0)]
+   |            ^^^ help: explicitly specify the type as `f32`: `1.0_f32`
+   |
+   = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+   = note: for more information, see issue #154024 <https://github.com/rust-lang/rust/issues/154024>
+
+warning: falling back to `f32` as the trait bound `f32: From<f64>` is not satisfied
+  --> D:\rust\makepad\draw\src\shader\draw_quad.rs:93:12
+   |
+93 |     #[live(0.0)]
+   |            ^^^ help: explicitly specify the type as `f32`: `0.0_f32`
+   |
+   = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+   = note: for more information, see issue #154024 <https://github.com/rust-lang/rust/issues/154024>
+
+warning: falling back to `f32` as the trait bound `f32: From<f64>` is not satisfied
+  --> D:\rust\makepad\draw\src\shader\draw_rotated_text.rs:81:12
+   |
+81 |     #[live(0.0)]
+   |            ^^^ help: explicitly specify the type as `f32`: `0.0_f32`
+   |
+   = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+   = note: for more information, see issue #154024 <https://github.com/rust-lang/rust/issues/154024>
+
+warning: falling back to `f32` as the trait bound `f32: From<f64>` is not satisfied
+  --> D:\rust\makepad\draw\src\shader\draw_rotated_text.rs:83:12
+   |
+83 |     #[live(1.0)]
+   |            ^^^ help: explicitly specify the type as `f32`: `1.0_f32`
+   |
+   = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+   = note: for more information, see issue #154024 <https://github.com/rust-lang/rust/issues/154024>
+
+warning: falling back to `f32` as the trait bound `f32: From<f64>` is not satisfied
+    --> D:\rust\makepad\draw\src\shader\draw_text.rs:1285:12
+     |
+1285 |     #[live(1.0)]
+     |            ^^^ help: explicitly specify the type as `f32`: `1.0_f32`
+     |
+     = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+     = note: for more information, see issue #154024 <https://github.com/rust-lang/rust/issues/154024>
+
+warning: falling back to `f32` as the trait bound `f32: From<f64>` is not satisfied
+    --> D:\rust\makepad\draw\src\shader\draw_text.rs:1287:12
+     |
+1287 |     #[live(0.0)]
+     |            ^^^ help: explicitly specify the type as `f32`: `0.0_f32`
+     |
+     = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+     = note: for more information, see issue #154024 <https://github.com/rust-lang/rust/issues/154024>
+
+warning: falling back to `f32` as the trait bound `f32: From<f64>` is not satisfied
+    --> D:\rust\makepad\draw\src\shader\draw_text.rs:1328:12
+     |
+1328 |     #[live(1.0)]
+     |            ^^^ help: explicitly specify the type as `f32`: `1.0_f32`
+     |
+     = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+     = note: for more information, see issue #154024 <https://github.com/rust-lang/rust/issues/154024>
+
+warning: falling back to `f32` as the trait bound `f32: From<f64>` is not satisfied
+    --> D:\rust\makepad\draw\src\shader\draw_text.rs:1338:12
+     |
+1338 |     #[live(1.0)]
+     |            ^^^ help: explicitly specify the type as `f32`: `1.0_f32`
+     |
+     = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+     = note: for more information, see issue #154024 <https://github.com/rust-lang/rust/issues/154024>
+
+warning: falling back to `f32` as the trait bound `f32: From<f64>` is not satisfied
+    --> D:\rust\makepad\draw\src\shader\draw_text.rs:1340:12
+     |
+1340 |     #[live(0.03)]
+     |            ^^^^ help: explicitly specify the type as `f32`: `0.03_f32`
+     |
+     = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+     = note: for more information, see issue #154024 <https://github.com/rust-lang/rust/issues/154024>
+
+warning: falling back to `f32` as the trait bound `f32: From<f64>` is not satisfied
+    --> D:\rust\makepad\draw\src\shader\draw_text.rs:1350:12
+     |
+1350 |     #[live(0.0)]
+     |            ^^^ help: explicitly specify the type as `f32`: `0.0_f32`
+     |
+     = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+     = note: for more information, see issue #154024 <https://github.com/rust-lang/rust/issues/154024>
+
+warning: falling back to `f32` as the trait bound `f32: From<f64>` is not satisfied
+    --> D:\rust\makepad\draw\src\shader\draw_text.rs:1352:12
+     |
+1352 |     #[live(0.0)]
+     |            ^^^ help: explicitly specify the type as `f32`: `0.0_f32`
+     |
+     = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+     = note: for more information, see issue #154024 <https://github.com/rust-lang/rust/issues/154024>
+
+warning: falling back to `f32` as the trait bound `f32: From<f64>` is not satisfied
+    --> D:\rust\makepad\draw\src\shader\draw_text.rs:1354:12
+     |
+1354 |     #[live(0.2)]
+     |            ^^^ help: explicitly specify the type as `f32`: `0.2_f32`
+     |
+     = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+     = note: for more information, see issue #154024 <https://github.com/rust-lang/rust/issues/154024>
+
+warning: falling back to `f32` as the trait bound `f32: From<f64>` is not satisfied
+    --> D:\rust\makepad\draw\src\shader\draw_text.rs:1356:12
+     |
+1356 |     #[live(0.125)]
+     |            ^^^^^ help: explicitly specify the type as `f32`: `0.125_f32`
+     |
+     = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+     = note: for more information, see issue #154024 <https://github.com/rust-lang/rust/issues/154024>
+
+warning: falling back to `f32` as the trait bound `f32: From<f64>` is not satisfied
+    --> D:\rust\makepad\draw\src\shader\draw_text.rs:1374:12
+     |
+1374 |     #[live(1.0)]
+     |            ^^^ help: explicitly specify the type as `f32`: `1.0_f32`
+     |
+     = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+     = note: for more information, see issue #154024 <https://github.com/rust-lang/rust/issues/154024>
+
+warning: falling back to `f32` as the trait bound `f32: From<f64>` is not satisfied
+    --> D:\rust\makepad\draw\src\shader\draw_text.rs:1384:12
+     |
+1384 |     #[live(1.0)]
+     |            ^^^ help: explicitly specify the type as `f32`: `1.0_f32`
+     |
+     = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+     = note: for more information, see issue #154024 <https://github.com/rust-lang/rust/issues/154024>
+
+warning: falling back to `f32` as the trait bound `f32: From<f64>` is not satisfied
+    --> D:\rust\makepad\draw\src\shader\draw_text.rs:1386:12
+     |
+1386 |     #[live(0.03)]
+     |            ^^^^ help: explicitly specify the type as `f32`: `0.03_f32`
+     |
+     = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+     = note: for more information, see issue #154024 <https://github.com/rust-lang/rust/issues/154024>
+
+warning: falling back to `f32` as the trait bound `f32: From<f64>` is not satisfied
+    --> D:\rust\makepad\draw\src\shader\draw_text.rs:1396:12
+     |
+1396 |     #[live(0.0)]
+     |            ^^^ help: explicitly specify the type as `f32`: `0.0_f32`
+     |
+     = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+     = note: for more information, see issue #154024 <https://github.com/rust-lang/rust/issues/154024>
+
+warning: falling back to `f32` as the trait bound `f32: From<f64>` is not satisfied
+    --> D:\rust\makepad\draw\src\shader\draw_text.rs:1398:12
+     |
+1398 |     #[live(0.0)]
+     |            ^^^ help: explicitly specify the type as `f32`: `0.0_f32`
+     |
+     = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+     = note: for more information, see issue #154024 <https://github.com/rust-lang/rust/issues/154024>
+
+warning: falling back to `f32` as the trait bound `f32: From<f64>` is not satisfied
+    --> D:\rust\makepad\draw\src\shader\draw_text.rs:1400:12
+     |
+1400 |     #[live(0.2)]
+     |            ^^^ help: explicitly specify the type as `f32`: `0.2_f32`
+     |
+     = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+     = note: for more information, see issue #154024 <https://github.com/rust-lang/rust/issues/154024>
+
+warning: falling back to `f32` as the trait bound `f32: From<f64>` is not satisfied
+    --> D:\rust\makepad\draw\src\shader\draw_text.rs:1402:12
+     |
+1402 |     #[live(0.125)]
+     |            ^^^^^ help: explicitly specify the type as `f32`: `0.125_f32`
+     |
+     = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+     = note: for more information, see issue #154024 <https://github.com/rust-lang/rust/issues/154024>
+
+warning: falling back to `f32` as the trait bound `f32: From<f64>` is not satisfied
+    --> D:\rust\makepad\draw\src\shader\draw_text.rs:3190:12
+     |
+3190 |     #[live(10.0)]
+     |            ^^^^ help: explicitly specify the type as `f32`: `10.0_f32`
+     |
+     = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+     = note: for more information, see issue #154024 <https://github.com/rust-lang/rust/issues/154024>
+
+warning: falling back to `f32` as the trait bound `f32: From<f64>` is not satisfied
+    --> D:\rust\makepad\draw\src\shader\draw_text.rs:3192:12
+     |
+3192 |     #[live(1.0)]
+     |            ^^^ help: explicitly specify the type as `f32`: `1.0_f32`
+     |
+     = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+     = note: for more information, see issue #154024 <https://github.com/rust-lang/rust/issues/154024>
+
+warning: falling back to `f32` as the trait bound `f32: From<f64>` is not satisfied
+    --> D:\rust\makepad\draw\src\shader\draw_text.rs:3197:12
+     |
+3197 |     #[live(0.0)]
+     |            ^^^ help: explicitly specify the type as `f32`: `0.0_f32`
+     |
+     = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+     = note: for more information, see issue #154024 <https://github.com/rust-lang/rust/issues/154024>
+
+warning: falling back to `f32` as the trait bound `f32: From<f64>` is not satisfied
+    --> D:\rust\makepad\draw\src\shader\draw_text.rs:3210:12
+     |
+3210 |     #[live(0.0)]
+     |            ^^^ help: explicitly specify the type as `f32`: `0.0_f32`
+     |
+     = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+     = note: for more information, see issue #154024 <https://github.com/rust-lang/rust/issues/154024>
+
+warning: falling back to `f32` as the trait bound `f32: From<f64>` is not satisfied
+  --> D:\rust\makepad\draw\src\shader\draw_text_3d.rs:32:12
+   |
+32 |     #[rust(10.0)]
+   |            ^^^^ help: explicitly specify the type as `f32`: `10.0_f32`
+   |
+   = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+   = note: for more information, see issue #154024 <https://github.com/rust-lang/rust/issues/154024>
+
+warning: falling back to `f32` as the trait bound `f32: From<f64>` is not satisfied
+  --> D:\rust\makepad\draw\src\shader\draw_text_3d.rs:34:12
+   |
+34 |     #[rust(0.0)]
+   |            ^^^ help: explicitly specify the type as `f32`: `0.0_f32`
+   |
+   = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+   = note: for more information, see issue #154024 <https://github.com/rust-lang/rust/issues/154024>
+
+warning: falling back to `f32` as the trait bound `f32: From<f64>` is not satisfied
+   --> D:\rust\makepad\draw\src\shader\draw_vector.rs:328:12
+    |
+328 |     #[live(1.0)]
+    |            ^^^ help: explicitly specify the type as `f32`: `1.0_f32`
+    |
+    = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+    = note: for more information, see issue #154024 <https://github.com/rust-lang/rust/issues/154024>
+
+warning: falling back to `f32` as the trait bound `f32: From<f64>` is not satisfied
+   --> D:\rust\makepad\draw\src\shader\draw_vector.rs:330:12
+    |
+330 |     #[live(0.0)]
+    |            ^^^ help: explicitly specify the type as `f32`: `0.0_f32`
+    |
+    = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+    = note: for more information, see issue #154024 <https://github.com/rust-lang/rust/issues/154024>
+
+warning: `makepad-draw` (lib) generated 56 warnings (run `cargo fix --lib -p makepad-draw` to apply 56 suggestions)
+warning: falling back to `f32` as the trait bound `f32: From<f64>` is not satisfied
+  --> D:\rust\makepad\widgets\src\rubber_view.rs:38:12
+   |
+38 |     #[live(0.5)]
+   |            ^^^ help: explicitly specify the type as `f32`: `0.5_f32`
+   |
+   = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+   = note: for more information, see issue #154024 <https://github.com/rust-lang/rust/issues/154024>
+   = note: `#[warn(float_literal_f32_fallback)]` (part of `#[warn(future_incompatible)]`) on by default
+
+warning: falling back to `f32` as the trait bound `f32: From<f64>` is not satisfied
+    --> D:\rust\makepad\widgets\src\glass_panel.rs:1814:12
+     |
+1814 |     #[live(0.4)]
+     |            ^^^ help: explicitly specify the type as `f32`: `0.4_f32`
+     |
+     = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+     = note: for more information, see issue #154024 <https://github.com/rust-lang/rust/issues/154024>
+
+warning: falling back to `f32` as the trait bound `f32: From<f64>` is not satisfied
+   --> D:\rust\makepad\widgets\src\text_flow.rs:798:12
+    |
+798 |     #[live(50.0)]
+    |            ^^^^ help: explicitly specify the type as `f32`: `50.0_f32`
+    |
+    = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+    = note: for more information, see issue #154024 <https://github.com/rust-lang/rust/issues/154024>
+
+warning: falling back to `f32` as the trait bound `f32: From<f64>` is not satisfied
+   --> D:\rust\makepad\widgets\src\text_flow.rs:801:12
+    |
+801 |     #[live(100.0)]
+    |            ^^^^^ help: explicitly specify the type as `f32`: `100.0_f32`
+    |
+    = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+    = note: for more information, see issue #154024 <https://github.com/rust-lang/rust/issues/154024>
+
+warning: falling back to `f32` as the trait bound `f32: From<f64>` is not satisfied
+   --> D:\rust\makepad\widgets\src\vector.rs:362:12
+    |
+362 |     #[live(1.0)]
+    |            ^^^ help: explicitly specify the type as `f32`: `1.0_f32`
+    |
+    = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+    = note: for more information, see issue #154024 <https://github.com/rust-lang/rust/issues/154024>
+
+warning: falling back to `f32` as the trait bound `f32: From<f64>` is not satisfied
+   --> D:\rust\makepad\widgets\src\vector.rs:471:12
+    |
+471 |     #[live(1.0)]
+    |            ^^^ help: explicitly specify the type as `f32`: `1.0_f32`
+    |
+    = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+    = note: for more information, see issue #154024 <https://github.com/rust-lang/rust/issues/154024>
+
+warning: falling back to `f32` as the trait bound `f32: From<f64>` is not satisfied
+    --> D:\rust\makepad\widgets\src\vector.rs:1320:12
+     |
+1320 |     #[live(1.0)]
+     |            ^^^ help: explicitly specify the type as `f32`: `1.0_f32`
+     |
+     = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+     = note: for more information, see issue #154024 <https://github.com/rust-lang/rust/issues/154024>
+
+warning: falling back to `f32` as the trait bound `f32: From<f64>` is not satisfied
+    --> D:\rust\makepad\widgets\src\vector.rs:1375:12
+     |
+1375 |     #[live(0.5)]
+     |            ^^^ help: explicitly specify the type as `f32`: `0.5_f32`
+     |
+     = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+     = note: for more information, see issue #154024 <https://github.com/rust-lang/rust/issues/154024>
+
+warning: falling back to `f32` as the trait bound `f32: From<f64>` is not satisfied
+    --> D:\rust\makepad\widgets\src\vector.rs:1377:12
+     |
+1377 |     #[live(0.5)]
+     |            ^^^ help: explicitly specify the type as `f32`: `0.5_f32`
+     |
+     = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+     = note: for more information, see issue #154024 <https://github.com/rust-lang/rust/issues/154024>
+
+warning: falling back to `f32` as the trait bound `f32: From<f64>` is not satisfied
+    --> D:\rust\makepad\widgets\src\vector.rs:1379:12
+     |
+1379 |     #[live(0.5)]
+     |            ^^^ help: explicitly specify the type as `f32`: `0.5_f32`
+     |
+     = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+     = note: for more information, see issue #154024 <https://github.com/rust-lang/rust/issues/154024>
+
+warning: falling back to `f32` as the trait bound `f32: From<f64>` is not satisfied
+   --> D:\rust\makepad\widgets\src\chart.rs:371:12
+    |
+371 |     #[live(0.7)]
+    |            ^^^ help: explicitly specify the type as `f32`: `0.7_f32`
+    |
+    = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+    = note: for more information, see issue #154024 <https://github.com/rust-lang/rust/issues/154024>
+
+warning: falling back to `f32` as the trait bound `f32: From<f64>` is not satisfied
+   --> D:\rust\makepad\widgets\src\chart.rs:375:12
+    |
+375 |     #[live(2.0)]
+    |            ^^^ help: explicitly specify the type as `f32`: `2.0_f32`
+    |
+    = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+    = note: for more information, see issue #154024 <https://github.com/rust-lang/rust/issues/154024>
+
+warning: falling back to `f32` as the trait bound `f32: From<f64>` is not satisfied
+   --> D:\rust\makepad\widgets\src\chart.rs:383:12
+    |
+383 |     #[live(4.0)]
+    |            ^^^ help: explicitly specify the type as `f32`: `4.0_f32`
+    |
+    = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+    = note: for more information, see issue #154024 <https://github.com/rust-lang/rust/issues/154024>
+
+warning: falling back to `f32` as the trait bound `f32: From<f64>` is not satisfied
+   --> D:\rust\makepad\widgets\src\chart.rs:385:12
+    |
+385 |     #[live(0.7)]
+    |            ^^^ help: explicitly specify the type as `f32`: `0.7_f32`
+    |
+    = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+    = note: for more information, see issue #154024 <https://github.com/rust-lang/rust/issues/154024>
+
+warning: `makepad-widgets` (lib) generated 14 warnings (run `cargo fix --lib -p makepad-widgets` to apply 14 suggestions)
+   Compiling img_loader v0.1.0 (D:\rust\makepad_image_loader)
+warning: unused `Result` that must be used
+   --> src\app.rs:971:9
+    |
+971 | /         page_flip.draw_walk(cx, scope, Walk {
+972 | |             width: Size::Fixed(main_size.x),
+973 | |             height: Size::Fixed(main_size.y),
+974 | |             abs_pos: None,
+975 | |             margin: Inset::default(),
+976 | |             metrics: Default::default(),
+977 | |         });
+    | |__________^
+    |
+    = note: this `Result` may be an `Err` variant, which should be handled
+    = note: `#[warn(unused_must_use)]` (part of `#[warn(unused)]`) on by default
+help: use `let _ = ...` to ignore the resulting value
+    |
+971 |         let _ = page_flip.draw_walk(cx, scope, Walk {
+    |         +++++++
+
+warning: unused `Result` that must be used
+   --> src\app.rs:984:13
+    |
+984 | /             self.view.view(cx, ids!(file_tree_panel)).draw_walk(cx, scope, Walk {
+985 | |                 width: Size::Fixed(tree_width),
+986 | |                 height: Size::Fixed(rect.size.y),
+987 | |                 abs_pos: Some(dvec2(tree_x, rect.pos.y)),
+988 | |                 margin: Inset::default(),
+989 | |                 metrics: Default::default(),
+990 | |             });
+    | |______________^
+    |
+    = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+    |
+984 |             let _ = self.view.view(cx, ids!(file_tree_panel)).draw_walk(cx, scope, Walk {
+    |             +++++++
+
+warning: calls to `std::mem::drop` with a reference instead of an owned value does nothing
+    --> src\app.rs:1009:9
+     |
+1009 |         drop(state);
+     |         ^^^^^-----^
+     |              |
+     |              argument has type `&State`
+     |
+     = note: `#[warn(dropping_references)]` on by default
+help: use `let _ = ...` to ignore the expression or result
+     |
+1009 -         drop(state);
+1009 +         let _ = state;
+     |
+
+warning: `img_loader` (lib) generated 3 warnings
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 6.13s
