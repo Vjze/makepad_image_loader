@@ -17,7 +17,7 @@ fn dbg(msg: &str) {
     }
 }
 use makepad_widgets::*;
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 script_mod! {
     use mod.prelude.widgets.*
@@ -367,6 +367,9 @@ impl App {
     fn load_image_paths(&mut self, cx: &mut Cx) {
         self.state.image_paths.clear();
         self.state.loaded_image_idxs.clear();
+        self.state.thumb_textures.clear();
+        self.state.thumb_order.clear();
+        self.state.thumb_in_flight.clear();
         if let Some(p) = rfd::FileDialog::new().pick_folder() {
             let path = p.to_path_buf();
             let dir_path = path.clone();
@@ -462,6 +465,27 @@ impl AppMain for App {
     }
     fn handle_event(&mut self, cx: &mut Cx, event: &Event) {
         self.match_event(cx, event);
+        if let Event::Actions(actions) = event {
+            for action in actions.iter() {
+                if let Some(t) = action.downcast_ref::<ThumbDecoded>() {
+                    let mut ib = ImageBuffer::default();
+                    ib.width = t.width;
+                    ib.height = t.height;
+                    ib.data = t.data.clone();
+                    let tex = ib.into_new_texture(cx);
+                    self.state.thumb_textures.insert(t.image_idx, tex);
+                    self.state.thumb_order.push(t.image_idx);
+                    self.state.thumb_in_flight.remove(&t.image_idx);
+                    while self.state.thumb_textures.len() > THUMB_MAX_TEXTURES {
+                        if let Some(victim) = self.state.thumb_order.first().copied() {
+                            self.state.thumb_order.remove(0);
+                            self.state.thumb_textures.remove(&victim);
+                        }
+                    }
+                    self.ui.redraw(cx);
+                }
+            }
+        }
         if let Event::KeyDown(ke) = event {
             match ke.key_code {
                 KeyCode::Escape => {
@@ -473,6 +497,33 @@ impl AppMain for App {
                 KeyCode::ArrowLeft if self.state.in_slideshow => self.navigate_left(cx),
                 KeyCode::ArrowRight if self.state.in_slideshow => self.navigate_right(cx),
                 _ => {}
+            }
+        }
+        if let Event::MouseDown(mouse) = event {
+            if self.state.in_slideshow
+                && mouse.button == MouseButton::PRIMARY
+                && self.state.image_zoom > 1.0
+            {
+                if let Some(zv) = self.ui.widget(cx, ids!(slideshow.image_view)).borrow::<ZoomableView>()
+                {
+                    if zv.last_rect.contains(mouse.abs) {
+                        self.state.image_dragging = true;
+                        self.state.image_drag_start = mouse.abs;
+                        self.state.image_pan_start = self.state.image_pan;
+                    }
+                }
+            }
+        }
+        if let Event::MouseMove(mouse) = event {
+            if self.state.in_slideshow && self.state.image_dragging {
+                self.state.image_pan =
+                    self.state.image_pan_start + (mouse.abs - self.state.image_drag_start);
+                self.apply_image_zoom(cx);
+            }
+        }
+        if let Event::MouseUp(mouse) = event {
+            if self.state.image_dragging && mouse.button == MouseButton::PRIMARY {
+                self.state.image_dragging = false;
             }
         }
         if let Event::Scroll(se) = event {
@@ -499,9 +550,6 @@ impl AppMain for App {
                             let scaled_new = dvec2(rs.x * new_zoom, rs.y * new_zoom);
                             let top_left_new = cursor - image_pos * k;
                             self.state.image_pan = top_left_new - (rs - scaled_new) * 0.5;
-                        } else {
-                            // 光标在视口外：退回居中缩放
-                            self.state.image_pan = dvec2(0.0, 0.0);
                         }
                     }
                     if (new_zoom - 1.0).abs() < 0.001 {
@@ -542,6 +590,9 @@ impl AppMain for App {
         if matches!(event, Event::Draw(_)) && self.state.image_paths.is_empty() {
             let path = std::path::PathBuf::from("C:/Windows/Web/Wallpaper");
             self.state.loaded_image_idxs.clear();
+            self.state.thumb_textures.clear();
+            self.state.thumb_order.clear();
+            self.state.thumb_in_flight.clear();
             let (image_paths, root) = build_image_tree(&path);
             self.state.image_paths = image_paths;
             self.state.file_tree_data = Some(FileTreeData {
@@ -640,9 +691,15 @@ pub struct State {
     in_slideshow: bool,
     image_zoom: f64,
     image_pan: Vec2d,
+    image_dragging: bool,
+    image_drag_start: Vec2d,
+    image_pan_start: Vec2d,
     file_tree_data: Option<FileTreeData>,
     file_tree_open: bool,
     loaded_image_idxs: HashSet<usize>,
+    thumb_textures: HashMap<usize, Texture>,
+    thumb_order: Vec<usize>,
+    thumb_in_flight: HashSet<usize>,
 }
 
 impl State {
@@ -675,9 +732,15 @@ impl Default for State {
             in_slideshow: false,
             image_zoom: 1.0,
             image_pan: dvec2(0.0, 0.0),
+            image_dragging: false,
+            image_drag_start: dvec2(0.0, 0.0),
+            image_pan_start: dvec2(0.0, 0.0),
             file_tree_data: None,
             file_tree_open: false,
             loaded_image_idxs: HashSet::new(),
+            thumb_textures: HashMap::new(),
+            thumb_order: Vec::new(),
+            thumb_in_flight: HashSet::new(),
         }
     }
 }
@@ -766,6 +829,8 @@ pub struct ImageCardWidget {
     image_index: usize,
     #[rust]
     is_hovering: bool,
+    #[rust]
+    last_thumb_idx: Option<usize>,
 }
 
 impl Widget for ImageCardWidget {
@@ -856,6 +921,68 @@ impl Widget for ImageCardWidget {
         }
         self.view.handle_event(cx, event, scope);
     }
+}
+
+// ---------------------------------------------------------------------------
+// 缩略图后台解码：portal_list 网格不再全尺寸贴图，后台线程解码+缩小到 ≤512px
+// ---------------------------------------------------------------------------
+const THUMB_MAX_DIM: usize = 512;
+const THUMB_MAX_IN_FLIGHT: usize = 8;
+const THUMB_MAX_TEXTURES: usize = 96;
+
+#[derive(Debug, Clone)]
+pub struct ThumbDecoded {
+    pub image_idx: usize,
+    pub width: usize,
+    pub height: usize,
+    pub data: Vec<u32>,
+}
+
+fn downscale_image(buf: &ImageBuffer, max_dim: usize) -> Option<(usize, usize, Vec<u32>)> {
+    let (w, h) = (buf.width, buf.height);
+    if w == 0 || h == 0 {
+        return None;
+    }
+    if w <= max_dim && h <= max_dim {
+        return Some((w, h, buf.data.clone()));
+    }
+    let scale = max_dim as f64 / w.max(h) as f64;
+    let nw = ((w as f64 * scale).round().max(1.0)) as usize;
+    let nh = ((h as f64 * scale).round().max(1.0)) as usize;
+    let mut out = Vec::with_capacity(nw * nh);
+    for oy in 0..nh {
+        let sy0 = (oy as f64 * h as f64 / nh as f64).floor() as usize;
+        let sy1 = (((oy + 1) as f64 * h as f64 / nh as f64).ceil() as usize)
+            .max(sy0 + 1)
+            .min(h);
+        for ox in 0..nw {
+            let sx0 = (ox as f64 * w as f64 / nw as f64).floor() as usize;
+            let sx1 = (((ox + 1) as f64 * w as f64 / nw as f64).ceil() as usize)
+                .max(sx0 + 1)
+                .min(w);
+            let (mut r, mut g, mut b, mut a) = (0u64, 0u64, 0u64, 0u64);
+            for y in sy0..sy1 {
+                let row = y * w;
+                for x in sx0..sx1 {
+                    let p = buf.data[row + x];
+                    a += ((p >> 24) & 0xFF) as u64;
+                    r += ((p >> 16) & 0xFF) as u64;
+                    g += ((p >> 8) & 0xFF) as u64;
+                    b += (p & 0xFF) as u64;
+                }
+            }
+            let n = ((sy1 - sy0) * (sx1 - sx0)) as u64;
+            if n > 0 {
+                out.push(
+                    (((a / n) as u32) << 24)
+                        | (((r / n) as u32) << 16)
+                        | (((g / n) as u32) << 8)
+                        | ((b / n) as u32),
+                );
+            }
+        }
+    }
+    Some((nw, nh, out))
 }
 
 // ---------------------------------------------------------------------------
@@ -958,24 +1085,64 @@ impl Widget for ImageRow {
                     }
                     let image_idx = first_idx + item_idx;
 
-                    // 仅对尚未请求加载的图片触发异步加载
-                    let (need_load, image_path) = {
+                    // 缩略图：后台线程解码并缩小（≤512px），避免全尺寸贴图占显存
+                    let (filtered_image_idx, trigger_spawn, attach_tex, spawn_path) = {
                         let state = scope.data.get_mut::<State>().unwrap();
                         let filtered_image_idx = state.filtered_image_idxs[image_idx];
-                        if state.loaded_image_idxs.insert(filtered_image_idx) {
-                            (true, state.image_paths[filtered_image_idx].clone())
+                        let trigger_spawn = if state.loaded_image_idxs.insert(filtered_image_idx) {
+                            if state.thumb_in_flight.len() < THUMB_MAX_IN_FLIGHT {
+                                state.thumb_in_flight.insert(filtered_image_idx);
+                                true
+                            } else {
+                                state.loaded_image_idxs.remove(&filtered_image_idx);
+                                false
+                            }
                         } else {
-                            (false, PathBuf::new())
-                        }
+                            false
+                        };
+                        let attach_tex = state.thumb_textures.get(&filtered_image_idx).cloned();
+                        let spawn_path = if trigger_spawn {
+                            Some(state.image_paths[filtered_image_idx].clone())
+                        } else {
+                            None
+                        };
+                        (filtered_image_idx, trigger_spawn, attach_tex, spawn_path)
                     };
 
                     let card = list.item(cx, item_idx, live_id!(ImageCard));
-                    if let Some(mut card) = card.borrow_mut::<ImageCardWidget>() {
-                        card.image_index = image_idx;
+                    let mut do_set_tex = false;
+                    if let Some(mut c) = card.borrow_mut::<ImageCardWidget>() {
+                        c.image_index = image_idx;
+                        if attach_tex.is_some() {
+                            if c.last_thumb_idx != Some(filtered_image_idx) {
+                                c.last_thumb_idx = Some(filtered_image_idx);
+                                do_set_tex = true;
+                            }
+                        }
                     }
-                    if need_load {
-                        let _ = card.image(cx, ids!(thumb))
-                            .load_image_file_by_path_async(cx.cx, &image_path);
+                    if do_set_tex {
+                        if let Some(tex) = attach_tex {
+                            card.image(cx, ids!(thumb)).set_texture(cx.cx, Some(tex));
+                        }
+                    }
+                    if trigger_spawn {
+                        if let Some(image_path) = spawn_path {
+                            std::thread::spawn(move || {
+                                if let Ok(bytes) = std::fs::read(&image_path) {
+                                    if let Ok(buf) = decode_image_from_data(&bytes) {
+                                        if let Some((w, h, data)) = downscale_image(&buf, THUMB_MAX_DIM)
+                                        {
+                                            Cx::post_action(ThumbDecoded {
+                                                image_idx: filtered_image_idx,
+                                                width: w,
+                                                height: h,
+                                                data,
+                                            });
+                                        }
+                                    }
+                                }
+                            });
+                        }
                     }
                     card.draw_all(cx, &mut Scope::empty());
                 }
@@ -991,7 +1158,8 @@ impl Widget for ImageRow {
 
 // ---------------------------------------------------------------------------
 // ZoomableView：居中缩放 + 光标锚定缩放（App 的 Scroll 处理里更新 pan）
-//   last_rect 记录上一帧视口矩形，供 Scroll 事件计算锚点
+//   参考 makepad examples/move_after_draw：先正常画出子树，再用
+//   cx.shift_align_range 把整棵子树的 draw 条目整体平移到 pan 偏移
 // ---------------------------------------------------------------------------
 #[derive(Script, ScriptHook, Widget)]
 pub struct ZoomableView {
@@ -1013,19 +1181,30 @@ impl Widget for ZoomableView {
         if (zoom - 1.0).abs() < 0.001 && pan.length() < 0.001 {
             return self.view.draw_walk(cx, scope, walk);
         }
-        // 以视口中心为基准 + pan 偏移作为图像左上角（abs_pos 为绝对位置）
+        // 按缩放后尺寸居中绘制，再整子树平移 pan
         let zw = rect.size.x * zoom;
         let zh = rect.size.y * zoom;
-        self.view.draw_walk(cx, scope, Walk {
+        let start = cx.align_list_len();
+        if let Err(step) = self.view.draw_walk(cx, scope, Walk {
             width: Size::Fixed(zw),
             height: Size::Fixed(zh),
             abs_pos: Some(rect.pos + dvec2(
-                (rect.size.x - zw) * 0.5 + pan.x,
-                (rect.size.y - zh) * 0.5 + pan.y,
+                (rect.size.x - zw) * 0.5,
+                (rect.size.y - zh) * 0.5,
             )),
             margin: Inset::default(),
             metrics: Default::default(),
-        })
+        }) {
+            return Err(step);
+        }
+        cx.shift_align_range(
+            &TurtleAlignRange {
+                start,
+                end: cx.align_list_len(),
+            },
+            pan,
+        );
+        DrawStep::done()
     }
 
     fn handle_event(&mut self, cx: &mut Cx, event: &Event, scope: &mut Scope) {
