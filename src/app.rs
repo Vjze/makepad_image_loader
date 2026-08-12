@@ -68,8 +68,7 @@ script_mod! {
         align: VCenter
         margin: Inset{ right: 5 }
 
-        filetree_btn := CaptionChromeToggle {
-        }
+
         search_btn := Button {
             text: "打开文件夹",
         }
@@ -87,7 +86,6 @@ script_mod! {
         height: Fit,
         align: VCenter
         margin: Inset{ left: 5 }
-        SearchBox {}
         Filler> {}
         State_bar {}
     }
@@ -251,10 +249,10 @@ script_mod! {
     // RoundedView 自带 draw_bg shader + show_bg，普通 View 的 draw_bg 无 shader 画不出背景
     let FileTreeSideBar = RoundedView {
         width: Fill, height: Fill
-        draw_bg +: {
-            color: #x16181c
-            border_radius: 0.0
-        }
+        // draw_bg +: {
+        //     color: #x16181c
+        //     border_radius: 0.0
+        // }
         flow: Down
         header := View {
             width: Fill, height: Fit
@@ -308,11 +306,14 @@ script_mod! {
     // 整个应用背景：RoundedView 才有带 shader 的 draw_bg（普通 View/KeyboardView 的 draw_bg 无 shader）
     let AppBody = RoundedView {
         width: Fill, height: Fill
-        flow: Down
-        draw_bg +: {
-            color: #x0b0d14
-            border_radius: 0.0
-        }
+        flow: Overlay
+        bg_scene := Vector {
+                        width: Fill, height: Fill
+                        viewbox: vec4(0 0 1400 900)
+                        Circle { cx: 200 cy: 180 r: 380 fill: scene_cyan }
+                        Circle { cx: 1180 cy: 200 r: 320 fill: scene_gold }
+                        Circle { cx: 700 cy: 680 r: 420 fill: scene_violet }
+                    }
         split_view := Splitter {
             width: Fill, height: Fill
             axis: SplitterAxis.Horizontal
@@ -331,10 +332,46 @@ script_mod! {
             b: ContentView {}
         }
     }
-
+    let MolyDesktopButton = DesktopButton {
+        draw_bg +: {
+            color: uniform(#000)
+            color_hover: uniform(#0004)
+            color_down: uniform(#0006)
+        }
+    }
     startup() do #(App::script_component(vm)){
         ui: Root {
             main_window := Window {
+                caption_bar := SolidView {
+                            width: Fill
+                            height: Fit
+                            flow: Right
+                            left_controls := View {
+                                width: Fit
+                                height: Fit
+                                flow: Right
+                                align: Align {x: 0.0 y: 0.5}
+                                margin: Inset {left: 8.0 top: 0.0}
+                                filetree_btn := CaptionChromeToggle {}
+                            }
+                            caption_label := View {
+                                            width: Fill
+                                            height: Fill
+                                            align: VCenter
+                                        }
+                                        windows_buttons := View {
+                                            width: Fit height: Fit
+                                            min := MolyDesktopButton {
+                                                draw_bg +: {button_type: DesktopButtonType.WindowsMin}
+                                            }
+                                            max := MolyDesktopButton {
+                                                draw_bg +: {button_type: DesktopButtonType.WindowsMax}
+                                            }
+                                            close := MolyDesktopButton {
+                                                draw_bg +: {button_type: DesktopButtonType.WindowsClose}
+                                            }
+                                        }
+                }
                 window.inner_size: vec2(1280, 768)
                 window.title: "Image_Loader"
                 body: AppBody {}
@@ -600,6 +637,17 @@ impl AppMain for App {
         let mut scope = Scope::with_data(&mut self.state);
         self.ui.handle_event(cx, event, &mut scope);
         // 移除无条件重绘——异步图片加载完毕后会自行触发绘制，Scroll/Drag 也会自行驱动
+        if let Event::WindowDragQuery(dq) = event {
+            let main_window = self.ui.window(cx, ids!(main_window));
+            if Some(dq.window_id) == main_window.window_id() {
+                let sidebar_rect = self.ui.button(cx, ids!(filetree_btn)).area().rect(cx);
+
+                if sidebar_rect.contains(dq.abs) {
+                    dq.response.set(WindowDragQueryResponse::Client);
+                    cx.set_cursor(MouseCursor::Default);
+                }
+            }
+        }
     }
 }
 
