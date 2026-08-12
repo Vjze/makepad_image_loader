@@ -23,6 +23,26 @@ script_mod! {
     use mod.prelude.widgets.*
     use mod.widgets.*
 
+    // 给 DrawImage 增加圆角支持（rounded-box SDF 裁剪 alpha）
+    // 默认 border_radius: 0 不影响其他 Image；卡片缩略图单独开启
+    // mod.draw.DrawImage = mod.draw.DrawImage {
+    //     border_radius: uniform(0.0)
+    //     pixel: fn() {
+    //         let color = mix(self.get_color(), #3, self.async_load)
+    //         let a = color.w * self.opacity
+    //         if self.border_radius > 0.0 {
+    //             let r = self.border_radius
+    //             let c = self.pos * self.rect_size
+    //             let half = self.rect_size * 0.5
+    //             let q = abs(c - half) - (half - vec2(r, r))
+    //             let d = length(max(q, vec2(0.0, 0.0))) + min(max(q.x, q.y), 0.0) - r
+    //             let alpha = clamp(0.5 - d, 0.0, 1.0)
+    //             return Pal.premul(vec4(color.xyz, a * alpha))
+    //         }
+    //         return Pal.premul(vec4(color.xyz, a))
+    //     }
+    // }
+
     let LEFT_ARROW = crate_resource("self://resources/left_arrow.svg");
     let RIGHT_ARROW = crate_resource("self://resources/right_arrow.svg");
     let LOOKING_GLASS = crate_resource("self://resources/looking_glass.svg");
@@ -98,7 +118,7 @@ script_mod! {
     // ------------------------------------------------------------------
     mod.widgets.ImageCardWidgetBase = #(ImageCardWidget::register_widget(vm))
     mod.widgets.ImageCardWidget = set_type_default() do mod.widgets.ImageCardWidgetBase{
-        ..mod.widgets. RoundedView {
+        ..mod.widgets.RoundedView {
         width: 250,
         height: 250,
         flow: Down,
@@ -141,14 +161,14 @@ script_mod! {
                 }
 
             draw_bg +: {
-                border_size: uniform(1.0)
+                border_size: uniform(2.0)
                 border_radius: uniform(12.5)
             }
 
             thumb := Image {
                 width: Fill,
                 height: Fill,
-                fit: ImageFit.Smallest,
+                fit: ImageFit.CropToFill,
                 margin: Inset{ left: 8.0, top: 8.0, right: 8.0, bottom: 8.0 }
             }
         }
@@ -405,7 +425,7 @@ impl App {
                 root,
             });
             self.state.file_tree_open = true; // 打开文件夹后自动展开
-            let mut splitter = self.ui.splitter(cx, ids!(split_view));
+            let splitter = self.ui.splitter(cx, ids!(split_view));
             splitter.set_align(cx, SplitterAlign::FromA(200.0));
             self.ui.redraw(cx);
             self.ui
@@ -436,18 +456,18 @@ impl App {
     }
 
     fn navigate_left(&mut self, cx: &mut Cx) {
-        if let Some(image_idx) = self.state.current_image_idx {
-            if image_idx > 0 {
-                self.set_current_image(cx, Some(image_idx - 1));
-            }
+        if let Some(image_idx) = self.state.current_image_idx.filter(|&idx| idx > 0) {
+            self.set_current_image(cx, Some(image_idx - 1));
         }
     }
 
     fn navigate_right(&mut self, cx: &mut Cx) {
-        if let Some(image_idx) = self.state.current_image_idx {
-            if image_idx + 1 < self.state.num_images() {
-                self.set_current_image(cx, Some(image_idx + 1));
-            }
+        if let Some(image_idx) = self
+            .state
+            .current_image_idx
+            .filter(|image_idx| image_idx + 1 < self.state.num_images())
+        {
+            self.set_current_image(cx, Some(image_idx + 1));
         }
     }
 
@@ -459,7 +479,7 @@ impl App {
         if let Some(image_idx) = self.state.current_image_idx {
             let filtered_image_idx = self.state.filtered_image_idxs[image_idx];
             let image_path = &self.state.image_paths[filtered_image_idx];
-            let _ = image.load_image_file_by_path_async(cx, &image_path);
+            let _ = image.load_image_file_by_path_async(cx, image_path);
         } else {
             let _ = image.load_image_dep_by_path(cx, "");
         }
