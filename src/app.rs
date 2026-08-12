@@ -46,45 +46,38 @@ script_mod! {
             Stop { offset: 1 color: #xf7f67ff opacity: 0.0 }
         }
 
-    let SearchBox = View {
-        width: Fill,
-        height: Fit,
-        align: VCenter
-        margin: Inset{ left: 5 }
 
-        Icon {
-            icon_walk: Walk{ width: 12.0 }
-            draw_icon +: {
-                color: #8,
-                svg: LOOKING_GLASS
+        let CaptionChromeToggle = ButtonFlatterIcon {
+                width: 36.0
+                height: 28.0
+                icon_walk: Walk {width: 16.0 height: 16.0}
+                draw_bg +: {
+                    color: #x474747
+                    color_hover: #x525252
+                    color_down: #x414141
+                    border_radius: 4.0
+                }
+                draw_icon +: {
+                    svg: crate_resource("self://src/resources/icon_sidebar_toggle.svg")
+                    color: #xCBCBCB
+                }
             }
-        }
-
-        query := TextInput {
-            empty_text: "Search",
-            draw_text +: {
-                text_style +: { font_size: 10 },
-                color: #8
-            }
-        }
-        Filler {}
-        all :=  Label {
-            text: "共: 0张",
-        }
-    }
     let State_bar = View {
         width: Fill,
         height: Fit,
         align: VCenter
         margin: Inset{ right: 5 }
-        
+
+        filetree_btn := CaptionChromeToggle {
+        }
         search_btn := Button {
             text: "打开文件夹",
         }
-        Filler {}
-        filetree_btn := Button {
-            text: "文件树"
+        all :=  Label {
+            text: "共: 0张",
         }
+        Filler {}
+
         slideshow_button := Button {
             text: "幻灯片模式"
         }
@@ -123,7 +116,7 @@ script_mod! {
         //         }
         //     }
         // }
-       
+
             // align: Center,
             animator: Animator {
                     ignore_missing: true
@@ -148,7 +141,7 @@ script_mod! {
                         }
                     }
                 }
-            
+
             draw_bg +: {
                 border_size: uniform(1.0)
                 border_radius: uniform(12.5)
@@ -257,7 +250,7 @@ script_mod! {
     // 侧边栏外壳：标题栏 + 文件树（标题栏放 View flow 里，树由 FileTreePanel 自行填充）
     // RoundedView 自带 draw_bg shader + show_bg，普通 View 的 draw_bg 无 shader 画不出背景
     let FileTreeSideBar = RoundedView {
-        width: 200, height: Fill
+        width: Fill, height: Fill
         draw_bg +: {
             color: #x16181c
             border_radius: 0.0
@@ -274,12 +267,6 @@ script_mod! {
                     text_style +: { font_size: 11.0 }
                     color: #c
                 }
-            }
-            Filler {}
-            collapse_btn := Button {
-                text: "✕"
-                width: Fit, height: Fit
-                draw_text +: { color: #8 }
             }
         }
         mod.widgets.FileTreePanel {}
@@ -504,7 +491,10 @@ impl AppMain for App {
                 && mouse.button == MouseButton::PRIMARY
                 && self.state.image_zoom > 1.0
             {
-                if let Some(zv) = self.ui.widget(cx, ids!(slideshow.image_view)).borrow::<ZoomableView>()
+                if let Some(zv) = self
+                    .ui
+                    .widget(cx, ids!(slideshow.image_view))
+                    .borrow::<ZoomableView>()
                 {
                     if zv.last_rect.contains(mouse.abs) {
                         self.state.image_dragging = true;
@@ -566,7 +556,8 @@ impl AppMain for App {
             }
         }
         if let Event::Timer(te) = event {
-            if te.timer_id == DBG_TIMER_ID.load(Ordering::Relaxed) && !DBG_CAP1.swap(true, Ordering::Relaxed)
+            if te.timer_id == DBG_TIMER_ID.load(Ordering::Relaxed)
+                && !DBG_CAP1.swap(true, Ordering::Relaxed)
             {
                 cx.capture_next_frame_to_file(std::path::PathBuf::from(
                     "C:/Users/Administrator/AppData/Local/Temp/opencode/cap_app.png",
@@ -644,7 +635,12 @@ impl MatchEvent for App {
             if let Some(wa) = action.downcast_ref::<WidgetAction>() {
                 if let Some(ftc) = wa.action.downcast_ref::<FileTreeClicked>() {
                     let target_idx = ftc.image_index;
-                    if let Some(pos) = self.state.filtered_image_idxs.iter().position(|&i| i == target_idx) {
+                    if let Some(pos) = self
+                        .state
+                        .filtered_image_idxs
+                        .iter()
+                        .position(|&i| i == target_idx)
+                    {
                         self.set_current_image(cx, Some(pos));
                     } else {
                         self.state.current_image_idx = Some(target_idx);
@@ -1130,7 +1126,8 @@ impl Widget for ImageRow {
                             std::thread::spawn(move || {
                                 if let Ok(bytes) = std::fs::read(&image_path) {
                                     if let Ok(buf) = decode_image_from_data(&bytes) {
-                                        if let Some((w, h, data)) = downscale_image(&buf, THUMB_MAX_DIM)
+                                        if let Some((w, h, data)) =
+                                            downscale_image(&buf, THUMB_MAX_DIM)
                                         {
                                             Cx::post_action(ThumbDecoded {
                                                 image_idx: filtered_image_idx,
@@ -1185,16 +1182,17 @@ impl Widget for ZoomableView {
         let zw = rect.size.x * zoom;
         let zh = rect.size.y * zoom;
         let start = cx.align_list_len();
-        if let Err(step) = self.view.draw_walk(cx, scope, Walk {
-            width: Size::Fixed(zw),
-            height: Size::Fixed(zh),
-            abs_pos: Some(rect.pos + dvec2(
-                (rect.size.x - zw) * 0.5,
-                (rect.size.y - zh) * 0.5,
-            )),
-            margin: Inset::default(),
-            metrics: Default::default(),
-        }) {
+        if let Err(step) = self.view.draw_walk(
+            cx,
+            scope,
+            Walk {
+                width: Size::Fixed(zw),
+                height: Size::Fixed(zh),
+                abs_pos: Some(rect.pos + dvec2((rect.size.x - zw) * 0.5, (rect.size.y - zh) * 0.5)),
+                margin: Inset::default(),
+                metrics: Default::default(),
+            },
+        ) {
             return Err(step);
         }
         cx.shift_align_range(
@@ -1239,7 +1237,12 @@ impl Widget for FileTreePanel {
                 .set_folder_is_open(cx, live_id!(root).into(), true, Animate::No);
             if let Some(state) = scope.data.get::<State>() {
                 if let Some(ref ft_data) = state.file_tree_data {
-                    Self::draw_tree_node(cx, &mut self.file_tree, &ft_data.root, live_id!(root).into());
+                    Self::draw_tree_node(
+                        cx,
+                        &mut self.file_tree,
+                        &ft_data.root,
+                        live_id!(root).into(),
+                    );
                 }
             }
         }
@@ -1255,7 +1258,12 @@ impl Widget for FileTreePanel {
 impl FileTreePanel {
     // 递归绘制文件树节点：图片文件用 image_idx+1 做节点 id，文件夹用路径哈希做节点 id
     // 首次出现的文件夹自动展开（is_folder 尚不存在时），之后保持用户的开合选择
-    fn draw_tree_node(cx: &mut Cx2d, file_tree: &mut FileTree, node: &FileTreeNode, node_id: LiveId) {
+    fn draw_tree_node(
+        cx: &mut Cx2d,
+        file_tree: &mut FileTree,
+        node: &FileTreeNode,
+        node_id: LiveId,
+    ) {
         if let Some(image_idx) = node.image_idx {
             file_tree.file(cx, LiveId(image_idx as u64 + 1), &node.name);
         } else {
@@ -1288,9 +1296,7 @@ impl WidgetMatchEvent for FileTreePanel {
                         if idx < state.image_paths.len() {
                             cx.widget_action(
                                 self.widget_uid(),
-                                FileTreeClicked {
-                                    image_index: idx,
-                                },
+                                FileTreeClicked { image_index: idx },
                             );
                         }
                     }
