@@ -1,0 +1,212 @@
+﻿
+warning: skipping duplicate package `bitflags v2.10.0 (https://github.com/makepad/makepad.git?branch=dev#e0a5a23f)`:
+warning: skipping duplicate package `cfg-if v1.0.4 (https://github.com/makepad/makepad.git?branch=dev#e0a5a23f)`:
+   Compiling makepad-error-log v1.0.0 (https://github.com/makepad/makepad.git?branch=dev#e0a5a23f)
+error[E0433]: cannot find `dbg` in `crate`
+error[E0433]: cannot find `dbg` in `crate`
+error[E0433]: cannot find `dbg` in `crate`
+error: cannot find macro `live_design` in this scope
+error: cannot find derive macro `Live` in this scope
+error: cannot find attribute `rust` in this scope
+error: cannot find attribute `rust` in this scope
+error: cannot find attribute `rust` in this scope
+error: cannot find macro `live_design` in this scope
+error: cannot find derive macro `Live` in this scope
+error: cannot find attribute `rust` in this scope
+error: cannot find attribute `rust` in this scope
+error: cannot find derive macro `Live` in this scope
+error: cannot find attribute `rust` in this scope
+error: cannot find macro `live_design` in this scope
+error: cannot find derive macro `Live` in this scope
+error: cannot find attribute `rust` in this scope
+error: cannot find macro `live_design` in this scope
+error: cannot find derive macro `Live` in this scope
+error: cannot find macro `live_design` in this scope
+error: cannot find attribute `rust` in this scope
+error[E0407]: method `handle_actions` is not a member of trait `AppMain`
+error[E0425]: cannot find type `PathBuf` in this scope
+error[E0425]: cannot find type `FileTreeData` in this scope
+error[E0433]: cannot find type `Ordering` in this scope
+error[E0433]: cannot find type `Ordering` in this scope
+error[E0433]: cannot find type `Ordering` in this scope
+error[E0425]: cannot find type `AtomicU64` in this scope
+error[E0433]: cannot find type `AtomicU64` in this scope
+error[E0425]: cannot find type `AtomicU64` in this scope
+error[E0433]: cannot find type `AtomicU64` in this scope
+error[E0425]: cannot find type `AtomicU64` in this scope
+error[E0433]: cannot find type `AtomicU64` in this scope
+error[E0425]: cannot find value `handle_event` in this scope
+error[E0425]: cannot find value `scope` in this scope
+error[E0433]: cannot find type `Ordering` in this scope
+error[E0433]: cannot find type `Ordering` in this scope
+error[E0433]: cannot find type `Ordering` in this scope
+error[E0425]: cannot find type `PathBuf` in this scope
+error[E0425]: cannot find type `PathBuf` in this scope
+error[E0425]: cannot find type `PathBuf` in this scope
+error[E0603]: struct import `ImageBuffer` is private
+warning: unused import: `makepad_widgets::*`
+warning: unused import: `crate::widgets::image_card::ImageCardWidget`
+warning: unused import: `FileTreeData`
+warning: unused import: `crate::widgets::file_tree_panel::FileTreePanel`
+warning: unused import: `crate::widgets::image_grid::ImageGrid`
+warning: unused import: `crate::widgets::zoomable_view::ZoomableView`
+error[E0277]: the trait bound `ImageCardWidget: ScriptApply` is not satisfied
+   = note: this error originates in the derive macro `Widget` (in Nightly builds, run with -Z macro-backtrace for more 
+info)
+error[E0277]: the trait bound `ImageCardWidget: ScriptApply` is not satisfied
+error[E0277]: the trait bound `ImageRow: ScriptApply` is not satisfied
+   = note: this error originates in the derive macro `Widget` (in Nightly builds, run with -Z macro-backtrace for more 
+info)
+error[E0277]: the trait bound `ImageRow: ScriptApply` is not satisfied
+error[E0277]: the trait bound `ImageGrid: ScriptApply` is not satisfied
+   = note: this error originates in the derive macro `Widget` (in Nightly builds, run with -Z macro-backtrace for more 
+info)
+error[E0277]: the trait bound `ImageGrid: ScriptApply` is not satisfied
+error[E0277]: the trait bound `ZoomableView: ScriptApply` is not satisfied
+   = note: this error originates in the derive macro `Widget` (in Nightly builds, run with -Z macro-backtrace for more 
+info)
+error[E0277]: the trait bound `ZoomableView: ScriptApply` is not satisfied
+error[E0277]: the trait bound `FileTreePanel: ScriptApply` is not satisfied
+   = note: this error originates in the derive macro `Widget` (in Nightly builds, run with -Z macro-backtrace for more 
+info)
+error[E0277]: the trait bound `FileTreePanel: ScriptApply` is not satisfied
+error[E0599]: no associated function or constant named `script_component` found for struct `ImageCardWidget` in the cur
+rent scope
+   = note: this error originates in the derive macro `Widget` (in Nightly builds, run with -Z macro-backtrace for more 
+info)
+error[E0599]: no associated function or constant named `script_new` found for struct `ImageCardWidget` in the current s
+cope
+   = note: this error originates in the macro `register_widget` which comes from the expansion of the derive macro `Wid
+get` (in Nightly builds, run with -Z macro-backtrace for more info)
+error[E0277]: the trait bound `ImageCardWidget: ScriptApply` is not satisfied
+error[E0061]: this method takes 2 arguments but 3 arguments were supplied
+error[E0599]: no variant, associated function, or constant named `FingerMove` found for enum `makepad_widgets::Event` i
+n the current scope
+error[E0425]: cannot find function `map_any` in this scope
+error[E0061]: this method takes 2 arguments but 1 argument was supplied
+    = note: this error originates in the derive macro `WidgetRef` (in Nightly builds, run with -Z macro-backtrace for m
+ore info)
+error[E0308]: mismatched types
+error[E0061]: this method takes 2 arguments but 1 argument was supplied
+    = note: this error originates in the derive macro `WidgetRef` (in Nightly builds, run with -Z macro-backtrace for m
+ore info)
+error[E0061]: this method takes 3 arguments but 2 arguments were supplied
+error[E0061]: this method takes 2 arguments but 1 argument was supplied
+    = note: this error originates in the derive macro `WidgetRef` (in Nightly builds, run with -Z macro-backtrace for m
+ore info)
+error[E0308]: mismatched types
+error[E0308]: mismatched types
+error[E0061]: this method takes 3 arguments but 2 arguments were supplied
+error[E0107]: method takes 0 generic arguments but 1 generic argument was supplied
+error[E0277]: the trait bound `ImageCardWidget: ScriptApply` is not satisfied
+error[E0599]: no associated function or constant named `none` found for struct `makepad_widgets::WidgetAction` in the c
+urrent scope
+error[E0609]: no field `image_index` on type `&makepad_widgets::WidgetAction`
+error[E0061]: this method takes 2 arguments but 3 arguments were supplied
+error[E0599]: no associated function or constant named `script_component` found for struct `ImageRow` in the current sc
+ope
+   = note: this error originates in the derive macro `Widget` (in Nightly builds, run with -Z macro-backtrace for more 
+info)
+error[E0599]: no associated function or constant named `script_new` found for struct `ImageRow` in the current scope
+   = note: this error originates in the macro `register_widget` which comes from the expansion of the derive macro `Wid
+get` (in Nightly builds, run with -Z macro-backtrace for more info)
+error[E0599]: no method named `len` found for struct `makepad_widgets::View` in the current scope
+error[E0599]: no method named `get` found for struct `makepad_widgets::View` in the current scope
+error[E0599]: no associated function or constant named `script_component` found for struct `ImageGrid` in the current s
+cope
+   = note: this error originates in the derive macro `Widget` (in Nightly builds, run with -Z macro-backtrace for more 
+info)
+error[E0599]: no associated function or constant named `script_new` found for struct `ImageGrid` in the current scope
+   = note: this error originates in the macro `register_widget` which comes from the expansion of the derive macro `Wid
+get` (in Nightly builds, run with -Z macro-backtrace for more info)
+error[E0599]: no method named `clear` found for struct `makepad_widgets::View` in the current scope
+error[E0599]: no associated function or constant named `new_from_ptr` found for struct `ImageRow` in the current scope
+error[E0599]: no method named `add_child` found for struct `makepad_widgets::View` in the current scope
+error[E0599]: no method named `iter` found for struct `makepad_widgets::View` in the current scope
+    = note: this error originates in the derive macro `Widget` (in Nightly builds, run with -Z macro-backtrace for more
+ info)
+error[E0599]: no associated function or constant named `script_component` found for struct `ZoomableView` in the curren
+t scope
+   = note: this error originates in the derive macro `Widget` (in Nightly builds, run with -Z macro-backtrace for more 
+info)
+error[E0599]: no associated function or constant named `script_new` found for struct `ZoomableView` in the current scop
+e
+   = note: this error originates in the macro `register_widget` which comes from the expansion of the derive macro `Wid
+get` (in Nightly builds, run with -Z macro-backtrace for more info)
+error[E0609]: no field `pos` on type `&MouseDownEvent`
+error[E0609]: no field `pos` on type `&MouseDownEvent`
+error[E0609]: no field `pos` on type `&MouseMoveEvent`
+error[E0609]: no field `scroll_pos` on type `&ScrollEvent`
+error[E0609]: no field `scroll_delta` on type `&ScrollEvent`
+error[E0609]: no field `scroll_pos` on type `&ScrollEvent`
+error[E0061]: this method takes 2 arguments but 1 argument was supplied
+    = note: this error originates in the derive macro `WidgetRef` (in Nightly builds, run with -Z macro-backtrace for m
+ore info)
+error[E0061]: this method takes 3 arguments but 2 arguments were supplied
+error[E0061]: this method takes 2 arguments but 1 argument was supplied
+    = note: this error originates in the derive macro `WidgetRef` (in Nightly builds, run with -Z macro-backtrace for m
+ore info)
+error[E0061]: this method takes 3 arguments but 2 arguments were supplied
+error[E0061]: this method takes 2 arguments but 1 argument was supplied
+    = note: this error originates in the derive macro `WidgetRef` (in Nightly builds, run with -Z macro-backtrace for m
+ore info)
+error[E0061]: this method takes 3 arguments but 2 arguments were supplied
+error[E0308]: mismatched types
+error[E0061]: this method takes 2 arguments but 1 argument was supplied
+    = note: this error originates in the derive macro `WidgetRef` (in Nightly builds, run with -Z macro-backtrace for m
+ore info)
+error[E0308]: mismatched types
+error[E0599]: no associated function or constant named `script_component` found for struct `FileTreePanel` in the curre
+nt scope
+   = note: this error originates in the derive macro `Widget` (in Nightly builds, run with -Z macro-backtrace for more 
+info)
+error[E0599]: no associated function or constant named `script_new` found for struct `FileTreePanel` in the current sco
+pe
+   = note: this error originates in the macro `register_widget` which comes from the expansion of the derive macro `Wid
+get` (in Nightly builds, run with -Z macro-backtrace for more info)
+error[E0061]: this method takes 2 arguments but 1 argument was supplied
+    = note: this error originates in the derive macro `WidgetRef` (in Nightly builds, run with -Z macro-backtrace for m
+ore info)
+error[E0599]: no method named `next` found for struct `PortalListRef` in the current scope
+error[E0107]: method takes 0 generic arguments but 1 generic argument was supplied
+error[E0599]: no associated function or constant named `none` found for struct `makepad_widgets::WidgetAction` in the c
+urrent scope
+error[E0609]: no field `image_index` on type `&makepad_widgets::WidgetAction`
+error[E0061]: this method takes 2 arguments but 3 arguments were supplied
+error[E0599]: no method named `sender` found for mutable reference `&mut makepad_widgets::Cx` in the current scope
+error[E0599]: no method named `read_image_buffer_sync` found for mutable reference `&mut makepad_widgets::Cx` in the cu
+rrent scope
+error[E0609]: no field `ui` on type `&mut app::App`
+error[E0609]: no field `ui` on type `&mut app::App`
+error[E0609]: no field `ui` on type `&mut app::App`
+error[E0609]: no field `ui` on type `&mut app::App`
+error[E0277]: the size for values of type `str` cannot be known at compilation time
+error[E0609]: no field `ui` on type `&mut app::App`
+error[E0609]: no field `ui` on type `&mut app::App`
+error[E0609]: no field `ui` on type `&mut app::App`
+error[E0609]: no field `ui` on type `&mut app::App`
+error[E0609]: no field `ui` on type `&mut app::App`
+error[E0609]: no field `ui` on type `&mut app::App`
+error[E0609]: no field `ui` on type `&mut app::App`
+error[E0599]: no associated function or constant named `take_action` found for struct `makepad_widgets::Cx` in the curr
+ent scope
+error[E0609]: no field `ui` on type `&mut app::App`
+error[E0609]: no field `ui` on type `&mut app::App`
+error[E0609]: no field `ui` on type `&mut app::App`
+error[E0609]: no field `ui` on type `&mut app::App`
+error[E0609]: no field `ui` on type `&mut app::App`
+error[E0609]: no field `ui` on type `&mut app::App`
+error[E0609]: no field `ui` on type `&mut app::App`
+error[E0609]: no field `ui` on type `&mut app::App`
+error[E0609]: no field `ui` on type `&mut app::App`
+error[E0609]: no field `ui` on type `&mut app::App`
+error[E0609]: no field `ui` on type `&mut app::App`
+error[E0609]: no field `ui` on type `&mut app::App`
+warning: unused import: `makepad_widgets`
+Some errors have detailed explanations: E0061, E0107, E0277, E0308, E0407, E0425, E0433, E0599, E0603...
+For more information about an error, try `rustc --explain E0061`.
+warning: `img_loader` (lib) generated 7 warnings
+error: could not compile `img_loader` (lib) due to 133 previous errors; 7 warnings emitted
+warning: build failed, waiting for other jobs to finish...
+
+

@@ -1,27 +1,18 @@
 use std::sync::atomic::{AtomicU64, AtomicUsize, Ordering};
+use makepad_widgets::*;
+
+use crate::state::State;
+use crate::actions::OpenImage;
+use crate::tree::{build_image_tree, FileTreeData};
+use crate::thumb::store_zoom_state;
+
 static DBG_DRAW_COUNT: AtomicUsize = AtomicUsize::new(0);
 static DBG_TIMER_ID: AtomicU64 = AtomicU64::new(0);
-static ZOOM_FACTOR: AtomicU64 = AtomicU64::new(f64::to_bits(1.0));
-static ZOOM_PAN_X: AtomicU64 = AtomicU64::new(f64::to_bits(0.0));
-static ZOOM_PAN_Y: AtomicU64 = AtomicU64::new(f64::to_bits(0.0));
-#[allow(dead_code)]
-fn dbg(msg: &str) {
-    use std::io::Write;
-    if let Ok(mut f) = std::fs::OpenOptions::new()
-        .append(true)
-        .create(true)
-        .open("C:/Users/Administrator/AppData/Local/Temp/opencode/dbg.log")
-    {
-        let _ = writeln!(f, "{}", msg);
-    }
-}
-use makepad_widgets::*;
-use std::collections::{HashMap, HashSet};
-use std::path::{Path, PathBuf};
+
 script_mod! {
     use mod.prelude.widgets.*
     use mod.widgets.*
-    
+
     let LEFT_ARROW = crate_resource("self://resources/left_arrow.svg");
     let RIGHT_ARROW = crate_resource("self://resources/right_arrow.svg");
     let LOOKING_GLASS = crate_resource("self://resources/looking_glass.svg");
@@ -89,93 +80,6 @@ script_mod! {
         State_bar {}
     }
 
-    // ------------------------------------------------------------------
-    // ImageCardWidget：自定义 Widget，包装固定尺寸的卡片 View
-    // - hover 动画由 View 的 Animator + handle_event 原生处理
-    // - 点击由 Widget::handle_event 检测 FingerUp 并发射 ImageClicked
-    // - 卡片固定 250×266，图片 240×240 → 间距统一
-    // ------------------------------------------------------------------
-    mod.widgets.ImageCardWidgetBase = #(ImageCardWidget::register_widget(vm))
-    mod.widgets.ImageCardWidget = set_type_default() do mod.widgets.ImageCardWidgetBase{
-        ..mod.widgets.RoundedView {
-        width: 250,
-        height: 250,
-        flow: Down,
-        align: Center,
-        // animator: Animator {
-        //     hover: {
-        //         default: @off
-        //         off: AnimatorState {
-        //             cursor: MouseCursor.Default
-        //         }
-        //         on: AnimatorState {
-        //             cursor: MouseCursor.Hand
-        //         }
-        //     }
-        // }
-
-            // align: Center,
-            animator: Animator {
-                    ignore_missing: true
-                    hover: {
-                        default: @off
-                        off: AnimatorState {
-                            from: {all: Forward {duration: 0.08}}
-                            apply: {
-                                width: 250,
-                                height: 250,
-                                draw_bg: {hover: 0.0}
-                            }
-                        }
-                        on: AnimatorState {
-                            cursor: MouseCursor.Hand
-                            from: {all: Snap}
-                            apply: {
-                                width: 265,
-                                height: 265,
-                                draw_bg: {hover: 1.0}
-                            }
-                        }
-                    }
-                }
-
-            draw_bg +: {
-                border_size: uniform(2.0)
-                border_radius: uniform(12.5)
-            }
-
-            thumb := Image {
-                width: Fill,
-                height: Fill,
-                fit: ImageFit.CropToFill,
-                margin: Inset{ left: 8.0, top: 8.0, right: 8.0, bottom: 8.0 }
-            }
-        }
-    }
-
-    mod.widgets.ImageRowBase = #(ImageRow::register_widget(vm))
-    mod.widgets.ImageRow = set_type_default() do mod.widgets.ImageRowBase{
-        width: Fill,
-        height: 250,
-        PortalList {
-            height: 250,
-            flow: Right,
-            spacing: 12.0,
-            ImageCard := mod.widgets.ImageCardWidget {}
-        }
-    }
-
-    mod.widgets.ImageGridBase = #(ImageGrid::register_widget(vm))
-    mod.widgets.ImageGrid = set_type_default() do mod.widgets.ImageGridBase{
-        width: Fill,
-        height: Fill,
-        PortalList {
-            flow: Down,
-            spacing: 0.0,
-            ImageRow := mod.widgets.ImageRow {}
-        }
-    }
-
     let ImageBrowser = View {
         width: Fill,
         height: Fill,
@@ -209,17 +113,6 @@ script_mod! {
         }
     }
 
-    mod.widgets.ZoomableViewBase = #(ZoomableView::register_widget(vm))
-    mod.widgets.ZoomableView = set_type_default() do mod.widgets.ZoomableViewBase{
-        width: Fill,
-        height: Fill,
-        image := Image {
-            width: Fill,
-            height: Fill,
-            fit: ImageFit.Smallest,
-        }
-    }
-
     let Slideshow = View {
         flow: Overlay,
 
@@ -234,24 +127,9 @@ script_mod! {
         overlay := SlideshowOverlay {}
     }
 
-    // FileTreePanel：参照 shell_demo RemoteFileTreeView 模式
-    //   #[live] pub file_tree: FileTree 直接绑定
-    //   draw_walk 用 while .is_step() 两步法在树之间填充节点（DemoFileTree 模式）
-    mod.widgets.FileTreePanelBase = #(FileTreePanel::register_widget(vm))
-    mod.widgets.FileTreePanel = set_type_default() do mod.widgets.FileTreePanelBase{
-        file_tree: FileTree {
-            node_height: 24.0
-        }
-    }
-
-    // 侧边栏外壳：标题栏 + 文件树（标题栏放 View flow 里，树由 FileTreePanel 自行填充）
-    // RoundedView 自带 draw_bg shader + show_bg，普通 View 的 draw_bg 无 shader 画不出背景
+    // 侧边栏外壳：标题栏 + 文件树
     let FileTreeSideBar = RoundedView {
         width: Fill, height: Fill
-        // draw_bg +: {
-        //     color: #x16181c
-        //     border_radius: 0.0
-        // }
         flow: Down
         header := View {
             width: Fill, height: Fit
@@ -280,29 +158,7 @@ script_mod! {
         }
     }
 
-    // SplitView：使用 Splitter 的 a/b 命名子槽做左右分栏
-    //   a: file_tree_panel (侧边栏), b: content_view (主内容)
-    //   按钮通过 set_align 控制展开/收起
-    mod.widgets.SplitView = Splitter {
-        width: Fill, height: Fill
-        axis: SplitterAxis.Horizontal
-        align: SplitterAlign.FromA(200.0)
-        size: 3.0
-        min_vertical: 0.0
-        min_horizontal: 0.0
-        draw_bg +: {
-            color: #xff0000
-            color_hover: #xff0000
-            color_drag: #xff0000
-            border_radius: 1.5
-            splitter_pad: 1.5
-        }
-
-        a: FileTreeSideBar {}
-        b: ContentView {}
-    }
-
-    // 整个应用背景：RoundedView 才有带 shader 的 draw_bg（普通 View/KeyboardView 的 draw_bg 无 shader）
+    // 整个应用背景
     let AppBody = RoundedView {
         width: Fill, height: Fill
         flow: Overlay
@@ -386,6 +242,7 @@ pub struct App {
     #[rust]
     state: State,
 }
+
 impl App {
     fn load_image_paths(&mut self, cx: &mut Cx) {
         self.state.image_paths.clear();
@@ -396,22 +253,21 @@ impl App {
         if let Some(p) = rfd::FileDialog::new().pick_folder() {
             let path = p.to_path_buf();
             let dir_path = path.clone();
-            // 递归构建图片路径列表 + 文件树（子文件夹/子文件全部展开显示）
             let (image_paths, root) = build_image_tree(&path);
             self.state.image_paths = image_paths;
             self.state.file_tree_data = Some(FileTreeData {
                 dir_path: dir_path.clone(),
                 root,
             });
-            self.state.file_tree_open = true; // 打开文件夹后自动展开
+            self.state.file_tree_open = true;
             let splitter = self.ui.splitter(cx, ids!(split_view));
             splitter.set_align(cx, SplitterAlign::FromA(200.0));
             self.ui.redraw(cx);
             self.ui
                 .label(cx, ids!(all))
                 .set_text(cx, &format!("共: {}张", self.state.image_paths.len()));
-            let query = self.ui.text_input(cx, ids!(query)).text();
-            self.filter_image_paths(cx, &query);
+            // 当前无搜索输入框，直接显示全部图片
+            self.filter_image_paths(cx, "");
         }
     }
     pub fn filter_image_paths(&mut self, cx: &mut Cx, query: &str) {
@@ -469,13 +325,33 @@ impl App {
     }
 
     fn apply_image_zoom(&mut self, cx: &mut Cx) {
-        let zoom = self.state.image_zoom;
-        ZOOM_FACTOR.store(f64::to_bits(zoom), Ordering::Relaxed);
-        ZOOM_PAN_X.store(f64::to_bits(self.state.image_pan.x), Ordering::Relaxed);
-        ZOOM_PAN_Y.store(f64::to_bits(self.state.image_pan.y), Ordering::Relaxed);
+        store_zoom_state(self.state.image_zoom, self.state.image_pan);
         self.ui.redraw(cx);
     }
+
+    // 仅负责协调组件发来的 OpenImage 命令。
+    // target_idx 是“原始图片索引”（image_paths 下标），在此转成过滤后的下标。
+    fn handle_open_image(&mut self, cx: &mut Cx, target_idx: usize) {
+        if target_idx >= self.state.image_paths.len() {
+            return;
+        }
+        if let Some(pos) = self
+            .state
+            .filtered_image_idxs
+            .iter()
+            .position(|&i| i == target_idx)
+        {
+            self.set_current_image(cx, Some(pos));
+        } else {
+            // 目标图片不在当前过滤结果中：直接加载该图（current_image_idx 置空表示非过滤定位）
+            self.state.current_image_idx = None;
+            let image = self.ui.image(cx, ids!(slideshow.image_view.image));
+            let _ = image.load_image_file_by_path_async(cx, &self.state.image_paths[target_idx]);
+        }
+        self.open_slideshow(cx);
+    }
 }
+
 impl AppMain for App {
     fn script_mod(vm: &mut ScriptVm) -> ScriptValue {
         makepad_widgets::theme_mod(vm);
@@ -483,7 +359,10 @@ impl AppMain for App {
             mod.theme = mod.themes.dark
         });
         makepad_widgets::widgets_mod(vm);
-        crate::script_mod(vm);
+        crate::widgets::image_card::script_mod(vm);
+        crate::widgets::image_grid::script_mod(vm);
+        crate::widgets::zoomable_view::script_mod(vm);
+        crate::widgets::file_tree_panel::script_mod(vm);
         self::script_mod(vm)
     }
     fn handle_event(&mut self, cx: &mut Cx, event: &Event) {
@@ -501,69 +380,12 @@ impl AppMain for App {
                 _ => {}
             }
         }
-        if let Event::MouseDown(mouse) = event
-            && self.state.in_slideshow
-                && mouse.button == MouseButton::PRIMARY
-                && self.state.image_zoom > 1.0
-                && let Some(zv) = self
-                    .ui
-                    .widget(cx, ids!(slideshow.image_view))
-                    .borrow::<ZoomableView>()
-                    && zv.last_rect.contains(mouse.abs) {
-                        self.state.image_dragging = true;
-                        self.state.image_drag_start = mouse.abs;
-                        self.state.image_pan_start = self.state.image_pan;
-                    }
-        if let Event::MouseMove(mouse) = event
-            && self.state.in_slideshow && self.state.image_dragging {
-                self.state.image_pan =
-                    self.state.image_pan_start + (mouse.abs - self.state.image_drag_start);
-                self.apply_image_zoom(cx);
-            }
-        if let Event::MouseUp(mouse) = event
-            && self.state.image_dragging && mouse.button == MouseButton::PRIMARY {
-                self.state.image_dragging = false;
-            }
-        if let Event::Scroll(se) = event
-            && self.state.in_slideshow && se.is_mouse && se.scroll.y != 0.0 {
-                let old_zoom = self.state.image_zoom;
-                let new_zoom = if se.scroll.y > 0.0 {
-                    old_zoom / 1.1
-                } else {
-                    old_zoom * 1.1
-                };
-                let new_zoom = new_zoom.clamp(0.1, 8.0);
-                if (new_zoom - old_zoom).abs() > 0.00001 {
-                    let zoom_ref = self.ui.widget(cx, ids!(slideshow.image_view));
-                    if let Some(zv) = zoom_ref.borrow_mut::<ZoomableView>() {
-                        let viewport = zv.last_rect;
-                        if viewport.contains(se.abs) {
-                            // 光标锚定缩放：保持鼠标指向的图像点不动
-                            let k = new_zoom / old_zoom;
-                            let rs = viewport.size;
-                            let cursor = se.abs - viewport.pos;
-                            let scaled = dvec2(rs.x * old_zoom, rs.y * old_zoom);
-                            let top_left = self.state.image_pan + (rs - scaled) * 0.5;
-                            let image_pos = cursor - top_left;
-                            let scaled_new = dvec2(rs.x * new_zoom, rs.y * new_zoom);
-                            let top_left_new = cursor - image_pos * k;
-                            self.state.image_pan = top_left_new - (rs - scaled_new) * 0.5;
-                        }
-                    }
-                    if (new_zoom - 1.0).abs() < 0.001 {
-                        self.state.image_pan = dvec2(0.0, 0.0);
-                    }
-                    self.state.image_zoom = new_zoom;
-                    self.apply_image_zoom(cx);
-                }
-            }
         if matches!(event, Event::Draw(_))
             && DBG_DRAW_COUNT.fetch_add(1, Ordering::Relaxed) == 0 {
                 DBG_TIMER_ID.store(cx.start_timeout(3.0).0, Ordering::Relaxed);
             }
         let mut scope = Scope::with_data(&mut self.state);
         self.ui.handle_event(cx, event, &mut scope);
-        // 移除无条件重绘——异步图片加载完毕后会自行触发绘制，Scroll/Drag 也会自行驱动
         if let Event::WindowDragQuery(dq) = event {
             let main_window = self.ui.window(cx, ids!(main_window));
             if Some(dq.window_id) == main_window.window_id() {
@@ -580,55 +402,22 @@ impl AppMain for App {
 
 impl MatchEvent for App {
     fn handle_actions(&mut self, cx: &mut Cx, actions: &Actions) {
+        // 组件各自处理完自身 action 后，通过 OpenImage 命令请求 App 协调。
+        // 注意：cx.widget_action 发出的顶层 action 是 WidgetAction，
+        // 真正的 OpenImage 包在 WidgetAction.action 里，需要两层 downcast。
         for action in actions.iter() {
-            if let Some(t) = action.downcast_ref::<ThumbDecoded>() {
-                let mut ib = ImageBuffer::default();
-                ib.width = t.width;
-                ib.height = t.height;
-                ib.data = t.data.clone();
-                let tex = ib.into_new_texture(cx);
-                self.state.thumb_textures.insert(t.image_idx, tex);
-                self.state.thumb_order.push(t.image_idx);
-                self.state.thumb_in_flight.remove(&t.image_idx);
-                while self.state.thumb_textures.len() > THUMB_MAX_TEXTURES {
-                    if let Some(victim) = self.state.thumb_order.first().copied() {
-                        self.state.thumb_order.remove(0);
-                        self.state.thumb_textures.remove(&victim);
-                    }
+            if let Some(wa) = action.downcast_ref::<WidgetAction>()
+                && let Some(open) = wa.action.downcast_ref::<OpenImage>() {
+                    self.handle_open_image(cx, open.image_index);
                 }
-                self.ui.redraw(cx);
-            }
-            if let Some(wa) = action.downcast_ref::<WidgetAction>() {
-                if let Some(ftc) = wa.action.downcast_ref::<FileTreeClicked>() {
-                    let target_idx = ftc.image_index;
-                    if let Some(pos) = self
-                        .state
-                        .filtered_image_idxs
-                        .iter()
-                        .position(|&i| i == target_idx)
-                    {
-                        self.set_current_image(cx, Some(pos));
-                    } else {
-                        self.state.current_image_idx = Some(target_idx);
-                        let image_path = &self.state.image_paths[target_idx];
-                        let image = self.ui.image(cx, ids!(slideshow.image_view.image));
-                        let _ = image.load_image_file_by_path_async(cx, image_path);
-                    }
-                    self.open_slideshow(cx);
-                }
-                if let Some(clicked) = wa.action.downcast_ref::<ImageClicked>() {
-                    self.set_current_image(cx, Some(clicked.image_index));
-                    self.open_slideshow(cx);
-                }
-            }
         }
+        // App 壳控件（无独立组件）直接响应
         if self.ui.button(cx, ids!(search_btn)).clicked(actions) {
             self.load_image_paths(cx);
         }
         if self.ui.button(cx, ids!(slideshow_button)).clicked(actions) {
             self.open_slideshow(cx);
         }
-        // 文件树展开/收起按钮
         if self.ui.button(cx, ids!(filetree_btn)).clicked(actions)
             && self.state.file_tree_data.is_some() {
                 self.state.file_tree_open = !self.state.file_tree_open;
@@ -637,650 +426,15 @@ impl MatchEvent for App {
                 } else {
                     SplitterAlign::FromA(0.0)
                 };
-                // 直接设置 Splitter 的 align 属性并 redraw
                 let splitter = self.ui.splitter(cx, ids!(split_view));
                 splitter.set_align(cx, align);
                 self.ui.redraw(cx);
-                self.ui.redraw(cx);
             }
-        // 幻灯片左右导航按钮
         if self.ui.button(cx, ids!(navigate_left)).clicked(actions) {
             self.navigate_left(cx);
         }
         if self.ui.button(cx, ids!(navigate_right)).clicked(actions) {
             self.navigate_right(cx);
-        }
-    }
-}
-
-fn is_image_file(f: String) -> bool {
-    let images_exts: Vec<&str> = vec![
-        ".png", ".jpeg", ".webp", ".pnm", ".ico", ".avif", ".jpg", ".gif", ".JPG", ".GIF", ".PNG",
-        ".JPRG", ".WEBP", ".PNM", ".ICO", ".AVIF",
-    ];
-    for x in &images_exts {
-        if f.ends_with(x) {
-            return true;
-        }
-    }
-    false
-}
-#[derive(Debug)]
-pub struct State {
-    image_paths: Vec<PathBuf>,
-    filtered_image_idxs: Vec<usize>,
-    max_images_per_row: usize,
-    current_image_idx: Option<usize>,
-    in_slideshow: bool,
-    image_zoom: f64,
-    image_pan: Vec2d,
-    image_dragging: bool,
-    image_drag_start: Vec2d,
-    image_pan_start: Vec2d,
-    file_tree_data: Option<FileTreeData>,
-    file_tree_open: bool,
-    loaded_image_idxs: HashSet<usize>,
-    thumb_textures: HashMap<usize, Texture>,
-    thumb_order: Vec<usize>,
-    thumb_in_flight: HashSet<usize>,
-}
-
-impl State {
-    fn num_images(&self) -> usize {
-        self.filtered_image_idxs.len()
-    }
-
-    fn num_rows(&self) -> usize {
-        self.num_images().div_ceil(self.max_images_per_row)
-    }
-
-    fn first_image_idx_for_row(&self, row_idx: usize) -> usize {
-        row_idx * self.max_images_per_row
-    }
-
-    fn num_images_for_row(&self, row_idx: usize) -> usize {
-        let first_image_idx = self.first_image_idx_for_row(row_idx);
-        let num_remaining_images = self.num_images() - first_image_idx;
-        self.max_images_per_row.min(num_remaining_images)
-    }
-}
-
-impl Default for State {
-    fn default() -> Self {
-        Self {
-            image_paths: Vec::new(),
-            filtered_image_idxs: Vec::new(),
-            max_images_per_row: 4,
-            current_image_idx: None,
-            in_slideshow: false,
-            image_zoom: 1.0,
-            image_pan: dvec2(0.0, 0.0),
-            image_dragging: false,
-            image_drag_start: dvec2(0.0, 0.0),
-            image_pan_start: dvec2(0.0, 0.0),
-            file_tree_data: None,
-            file_tree_open: false,
-            loaded_image_idxs: HashSet::new(),
-            thumb_textures: HashMap::new(),
-            thumb_order: Vec::new(),
-            thumb_in_flight: HashSet::new(),
-        }
-    }
-}
-
-#[derive(Clone, Debug)]
-pub struct ImageClicked {
-    pub image_index: usize,
-}
-
-#[derive(Clone, Debug)]
-pub struct FileTreeClicked {
-    pub image_index: usize,
-}
-
-// 文件树节点（文件夹 image_idx=None 且有 children，图片文件 image_idx=Some(索引)）
-#[derive(Clone, Debug)]
-pub struct FileTreeNode {
-    pub path: String,
-    pub name: String,
-    pub image_idx: Option<usize>, // 在 image_paths 中的索引
-    pub children: Vec<FileTreeNode>,
-}
-
-#[derive(Clone, Debug)]
-pub struct FileTreeData {
-    pub dir_path: PathBuf,
-    pub root: FileTreeNode,
-}
-
-// 递归扫描目录，返回 (所有图片路径, 目录树)
-fn build_image_tree(dir_path: &Path) -> (Vec<PathBuf>, FileTreeNode) {
-    fn build_node(dir: &Path, image_paths: &mut Vec<PathBuf>) -> FileTreeNode {
-        let mut children: Vec<FileTreeNode> = Vec::new();
-        if let Ok(read_dir) = std::fs::read_dir(dir) {
-            let mut entries: Vec<(String, std::fs::DirEntry)> = read_dir
-                .filter_map(Result::ok)
-                .map(|entry| {
-                    let name = entry.file_name().to_string_lossy().to_string();
-                    (name, entry)
-                })
-                .collect();
-            entries.sort_by(|a, b| a.0.cmp(&b.0));
-            for (name, entry) in entries {
-                let entry_path = entry.path();
-                if entry_path.is_dir() {
-                    children.push(build_node(&entry_path, image_paths));
-                } else if entry_path.is_file() && is_image_file(name.clone()) {
-                    let image_idx = image_paths.len();
-                    image_paths.push(entry_path.clone());
-                    children.push(FileTreeNode {
-                        path: entry_path.to_string_lossy().to_string(),
-                        name,
-                        image_idx: Some(image_idx),
-                        children: Vec::new(),
-                    });
-                }
-            }
-        }
-        FileTreeNode {
-            path: dir.to_string_lossy().to_string(),
-            name: dir
-                .file_name()
-                .map(|n| n.to_string_lossy().to_string())
-                .unwrap_or_else(|| "root".to_string()),
-            image_idx: None,
-            children,
-        }
-    }
-    let mut image_paths: Vec<PathBuf> = Vec::new();
-    let root = build_node(dir_path, &mut image_paths);
-    (image_paths, root)
-}
-
-// ---------------------------------------------------------------------------
-// ImageCardWidget：包裹固定尺寸卡片 View 的自定义 Widget
-//   hover 动画：由 View 的 Animator 原生处理（PortalList → handle_event → View::hits → Animator）
-//   点击：由 Widget::handle_event 手动检测 FingerUp → ImageClicked
-// ---------------------------------------------------------------------------
-#[derive(Script, ScriptHook, Widget)]
-pub struct ImageCardWidget {
-    #[deref]
-    view: View,
-    #[live]
-    draw_bg: DrawColor,
-    #[rust]
-    image_index: usize,
-    #[rust]
-    is_hovering: bool,
-    #[rust]
-    last_thumb_idx: Option<usize>,
-}
-
-impl Widget for ImageCardWidget {
-    fn draw_walk(&mut self, cx: &mut Cx2d, scope: &mut Scope, walk: Walk) -> DrawStep {
-        let rect = cx.peek_walk_turtle(walk);
-
-        if self.is_hovering {
-            // highlight behind
-            let pad = 10.0;
-            self.draw_bg.color = vec4(0.45, 0.60, 0.85, 0.20);
-            self.draw_bg.draw_abs(
-                cx,
-                Rect {
-                    pos: dvec2(rect.pos.x - pad, rect.pos.y - pad),
-                    size: dvec2(rect.size.x + pad * 2.0, rect.size.y + pad * 2.0),
-                },
-            );
-
-            // advance main turtle by normal walk (keep layout correct)
-            cx.walk_turtle(walk);
-
-            // draw zoomed card in isolated turtle — won't affect sibling positions
-            let scale = 1.12;
-            let sw = rect.size.x * scale;
-            let sh = rect.size.y * scale;
-            let dx = (rect.size.x - sw) * 0.5;
-            let dy = (rect.size.y - sh) * 0.5;
-
-            cx.begin_turtle(
-                Walk {
-                    width: Size::Fixed(sw),
-                    height: Size::Fixed(sh),
-                    abs_pos: Some(dvec2(rect.pos.x + dx, rect.pos.y + dy)),
-                    margin: Inset::default(),
-                    metrics: Default::default(),
-                },
-                Layout::default(),
-            );
-            let _ = self.view.draw_walk(
-                cx,
-                scope,
-                Walk {
-                    width: Size::Fixed(sw),
-                    height: Size::Fixed(sh),
-                    abs_pos: None,
-                    margin: Inset::default(),
-                    metrics: Default::default(),
-                },
-            );
-            cx.end_turtle();
-
-            DrawStep::done()
-        } else {
-            self.view.draw_walk(cx, scope, walk)
-        }
-    }
-
-    fn handle_event(&mut self, cx: &mut Cx, event: &Event, scope: &mut Scope) {
-        let area = self.view.area();
-        let hit = event.hits(cx, area);
-
-        match hit {
-            Hit::FingerHoverIn(_) => {
-                if !self.is_hovering {
-                    self.is_hovering = true;
-                    self.view.animator_play(cx, ids!(hover.on));
-                    self.redraw(cx);
-                }
-            }
-            Hit::FingerHoverOut(_) => {
-                if self.is_hovering {
-                    self.is_hovering = false;
-                    self.view.animator_play(cx, ids!(hover.off));
-                    self.redraw(cx);
-                }
-            }
-            Hit::FingerUp(fe)
-                if fe.is_over && fe.was_tap() && fe.is_primary_hit() => {
-                    cx.widget_action(
-                        self.widget_uid(),
-                        ImageClicked {
-                            image_index: self.image_index,
-                        },
-                    );
-                }
-            _ => {}
-        }
-        self.view.handle_event(cx, event, scope);
-    }
-}
-
-// ---------------------------------------------------------------------------
-// 缩略图后台解码：portal_list 网格不再全尺寸贴图，后台线程解码+缩小到 ≤512px
-// ---------------------------------------------------------------------------
-const THUMB_MAX_DIM: usize = 512;
-const THUMB_MAX_IN_FLIGHT: usize = 8;
-const THUMB_MAX_TEXTURES: usize = 96;
-
-#[derive(Debug, Clone)]
-pub struct ThumbDecoded {
-    pub image_idx: usize,
-    pub width: usize,
-    pub height: usize,
-    pub data: Vec<u32>,
-}
-
-fn downscale_image(buf: &ImageBuffer, max_dim: usize) -> Option<(usize, usize, Vec<u32>)> {
-    let (w, h) = (buf.width, buf.height);
-    if w == 0 || h == 0 {
-        return None;
-    }
-    if w <= max_dim && h <= max_dim {
-        return Some((w, h, buf.data.clone()));
-    }
-    let scale = max_dim as f64 / w.max(h) as f64;
-    let nw = ((w as f64 * scale).round().max(1.0)) as usize;
-    let nh = ((h as f64 * scale).round().max(1.0)) as usize;
-    let mut out = Vec::with_capacity(nw * nh);
-    for oy in 0..nh {
-        let sy0 = (oy as f64 * h as f64 / nh as f64).floor() as usize;
-        let sy1 = (((oy + 1) as f64 * h as f64 / nh as f64).ceil() as usize)
-            .max(sy0 + 1)
-            .min(h);
-        for ox in 0..nw {
-            let sx0 = (ox as f64 * w as f64 / nw as f64).floor() as usize;
-            let sx1 = (((ox + 1) as f64 * w as f64 / nw as f64).ceil() as usize)
-                .max(sx0 + 1)
-                .min(w);
-            let (mut r, mut g, mut b, mut a) = (0u64, 0u64, 0u64, 0u64);
-            for y in sy0..sy1 {
-                let row = y * w;
-                for x in sx0..sx1 {
-                    let p = buf.data[row + x];
-                    a += ((p >> 24) & 0xFF) as u64;
-                    r += ((p >> 16) & 0xFF) as u64;
-                    g += ((p >> 8) & 0xFF) as u64;
-                    b += (p & 0xFF) as u64;
-                }
-            }
-            let n = ((sy1 - sy0) * (sx1 - sx0)) as u64;
-            if let (Some(av), Some(rv), Some(gv), Some(bv)) = (
-                a.checked_div(n),
-                r.checked_div(n),
-                g.checked_div(n),
-                b.checked_div(n),
-            ) {
-                out.push(
-                    ((av as u32) << 24) | ((rv as u32) << 16) | ((gv as u32) << 8)
-                        | (bv as u32),
-                );
-            }
-        }
-    }
-    Some((nw, nh, out))
-}
-
-// ---------------------------------------------------------------------------
-// ImageGrid：外层 PortalList（flow: Down），每行一个 ImageRow
-// ---------------------------------------------------------------------------
-#[derive(Script, ScriptHook, Widget)]
-pub struct ImageGrid {
-    #[deref]
-    view: View,
-}
-
-impl Widget for ImageGrid {
-    fn draw_walk(&mut self, cx: &mut Cx2d, scope: &mut Scope, walk: Walk) -> DrawStep {
-        dbg("GRID draw_walk called");
-        let rect = cx.peek_walk_turtle(walk);
-        dbg(&format!(
-            "GRID rect pos=({:.0},{:.0}) size={:.0}x{:.0}",
-            rect.pos.x, rect.pos.y, rect.size.x, rect.size.y
-        ));
-        while let Some(item) = self.view.draw_walk(cx, scope, walk).step() {
-            let state = scope.data.get_mut::<State>().unwrap();
-            if let Some(mut list) = item.as_portal_list().borrow_mut() {
-                let grid_width = cx.peek_walk_turtle(walk).size.x.max(1.0);
-                let spacing = 12.0;
-                let card_width = 250.0;
-                let cols = ((grid_width + spacing) / (card_width + spacing))
-                    .floor()
-                    .max(1.0) as usize;
-                state.max_images_per_row = cols;
-                list.set_item_range(cx, 0, state.num_rows());
-                dbg(&format!(
-                    "GRID width={:.0} cols={} rows={}",
-                    grid_width,
-                    cols,
-                    state.num_rows()
-                ));
-                while let Some(row_idx) = list.next_visible_item(cx) {
-                    if row_idx >= state.num_rows() {
-                        continue;
-                    }
-                    let row = list.item(cx, row_idx, live_id!(ImageRow));
-                    let mut row_scope = Scope::with_data_props(state, &row_idx);
-                    row.draw_all(cx, &mut row_scope);
-                }
-            }
-        }
-        DrawStep::done()
-    }
-
-    fn handle_event(&mut self, cx: &mut Cx, event: &Event, scope: &mut Scope) {
-        self.view.handle_event(cx, event, scope)
-    }
-}
-
-// ---------------------------------------------------------------------------
-// ImageRow：内层 PortalList（flow: Right），每项是 ImageCardWidget
-//   设置 card.image_index + card.image_path，然后 draw_all
-// ---------------------------------------------------------------------------
-#[derive(Script, ScriptHook, Widget)]
-pub struct ImageRow {
-    #[deref]
-    view: View,
-}
-
-impl Widget for ImageRow {
-    fn draw_walk(&mut self, cx: &mut Cx2d, scope: &mut Scope, walk: Walk) -> DrawStep {
-        // 先提取需要的值，避免和 self.view.draw_walk 的 scope 借冲突
-        let (num_items, first_idx) = {
-            let state = scope.data.get_mut::<State>().unwrap();
-            let row_idx = *scope.props.get::<usize>().unwrap();
-            (
-                state.num_images_for_row(row_idx),
-                state.first_image_idx_for_row(row_idx),
-            )
-        };
-
-        let rect = cx.peek_walk_turtle(walk);
-        let card_width = 250.0_f64;
-        let spacing = 12.0_f64;
-        let row_content_width =
-            num_items as f64 * card_width + (num_items.saturating_sub(1)) as f64 * spacing;
-        let margin_left = ((rect.size.x - row_content_width) * 0.5).max(0.0);
-
-        let row_walk = Walk {
-            margin: Inset {
-                left: margin_left,
-                top: 0.0,
-                right: 0.0,
-                bottom: 0.0,
-            },
-            ..walk
-        };
-
-        while let Some(item) = self.view.draw_walk(cx, scope, row_walk).step() {
-            if let Some(mut list) = item.as_portal_list().borrow_mut() {
-                list.set_item_range(cx, 0, num_items);
-                while let Some(item_idx) = list.next_visible_item(cx) {
-                    if item_idx >= num_items {
-                        continue;
-                    }
-                    let image_idx = first_idx + item_idx;
-
-                    // 缩略图：后台线程解码并缩小（≤512px），避免全尺寸贴图占显存
-                    let (filtered_image_idx, trigger_spawn, attach_tex, spawn_path) = {
-                        let state = scope.data.get_mut::<State>().unwrap();
-                        let filtered_image_idx = state.filtered_image_idxs[image_idx];
-                        let trigger_spawn = if state.loaded_image_idxs.insert(filtered_image_idx) {
-                            if state.thumb_in_flight.len() < THUMB_MAX_IN_FLIGHT {
-                                state.thumb_in_flight.insert(filtered_image_idx);
-                                true
-                            } else {
-                                state.loaded_image_idxs.remove(&filtered_image_idx);
-                                false
-                            }
-                        } else {
-                            false
-                        };
-                        let attach_tex = state.thumb_textures.get(&filtered_image_idx).cloned();
-                        let spawn_path = if trigger_spawn {
-                            Some(state.image_paths[filtered_image_idx].clone())
-                        } else {
-                            None
-                        };
-                        (filtered_image_idx, trigger_spawn, attach_tex, spawn_path)
-                    };
-
-                    let card = list.item(cx, item_idx, live_id!(ImageCard));
-                    let mut do_set_tex = false;
-                    if let Some(mut c) = card.borrow_mut::<ImageCardWidget>() {
-                        c.image_index = image_idx;
-                        if attach_tex.is_some()
-                            && c.last_thumb_idx != Some(filtered_image_idx) {
-                                c.last_thumb_idx = Some(filtered_image_idx);
-                                do_set_tex = true;
-                            }
-                    }
-                    if do_set_tex
-                        && let Some(tex) = attach_tex {
-                            card.image(cx, ids!(thumb)).set_texture(cx.cx, Some(tex));
-                        }
-                    if trigger_spawn
-                        && let Some(image_path) = spawn_path {
-                            std::thread::spawn(move || {
-                                if let Ok(bytes) = std::fs::read(&image_path)
-                                    && let Ok(buf) = decode_image_from_data(&bytes)
-                                        && let Some((w, h, data)) =
-                                            downscale_image(&buf, THUMB_MAX_DIM)
-                                        {
-                                            Cx::post_action(ThumbDecoded {
-                                                image_idx: filtered_image_idx,
-                                                width: w,
-                                                height: h,
-                                                data,
-                                            });
-                                        }
-                            });
-                        }
-                    card.draw_all(cx, &mut Scope::empty());
-                }
-            }
-        }
-        DrawStep::done()
-    }
-
-    fn handle_event(&mut self, cx: &mut Cx, event: &Event, scope: &mut Scope) {
-        self.view.handle_event(cx, event, scope)
-    }
-}
-
-// ---------------------------------------------------------------------------
-// ZoomableView：居中缩放 + 光标锚定缩放（App 的 Scroll 处理里更新 pan）
-//   参考 makepad examples/move_after_draw：先正常画出子树，再用
-//   cx.shift_align_range 把整棵子树的 draw 条目整体平移到 pan 偏移
-// ---------------------------------------------------------------------------
-#[derive(Script, ScriptHook, Widget)]
-pub struct ZoomableView {
-    #[deref]
-    view: View,
-    #[rust]
-    pub last_rect: Rect,
-}
-
-impl Widget for ZoomableView {
-    fn draw_walk(&mut self, cx: &mut Cx2d, scope: &mut Scope, walk: Walk) -> DrawStep {
-        let rect = cx.peek_walk_turtle(walk);
-        self.last_rect = rect;
-        let zoom = f64::from_bits(ZOOM_FACTOR.load(Ordering::Relaxed));
-        let pan = dvec2(
-            f64::from_bits(ZOOM_PAN_X.load(Ordering::Relaxed)),
-            f64::from_bits(ZOOM_PAN_Y.load(Ordering::Relaxed)),
-        );
-        if (zoom - 1.0).abs() < 0.001 && pan.length() < 0.001 {
-            return self.view.draw_walk(cx, scope, walk);
-        }
-        // 按缩放后尺寸居中绘制，再整子树平移 pan
-        let zw = rect.size.x * zoom;
-        let zh = rect.size.y * zoom;
-        let start = cx.align_list_len();
-        self.view.draw_walk(
-            cx,
-            scope,
-            Walk {
-                width: Size::Fixed(zw),
-                height: Size::Fixed(zh),
-                abs_pos: Some(rect.pos + dvec2((rect.size.x - zw) * 0.5, (rect.size.y - zh) * 0.5)),
-                margin: Inset::default(),
-                metrics: Default::default(),
-            },
-        )?;
-        cx.shift_align_range(
-            &TurtleAlignRange {
-                start,
-                end: cx.align_list_len(),
-            },
-            pan,
-        );
-        DrawStep::done()
-    }
-
-    fn handle_event(&mut self, cx: &mut Cx, event: &Event, scope: &mut Scope) {
-        self.view.handle_event(cx, event, scope)
-    }
-}
-
-// ---------------------------------------------------------------------------
-// FileTreePanel：文件树组件（参照 DemoFileTree 模式）
-//   #[live] pub file_tree: FileTree 直接绑定
-//   draw_walk 用 while .is_step() 两步法在树之间填充节点
-//   节点 id：根 = live_id!(root)，文件 = LiveId(i+1)，点击经 WidgetMatchEvent 发射 FileTreeClicked
-// ---------------------------------------------------------------------------
-#[derive(Script, ScriptHook, Widget)]
-pub struct FileTreePanel {
-    #[uid]
-    uid: WidgetUid,
-    #[redraw]
-    #[live]
-    pub file_tree: FileTree,
-}
-impl Widget for FileTreePanel {
-    fn draw_walk(&mut self, cx: &mut Cx2d, scope: &mut Scope, walk: Walk) -> DrawStep {
-        dbg("FILETREE draw_walk called");
-        let rect = cx.peek_walk_turtle(walk);
-        dbg(&format!(
-            "FILETREE rect pos=({:.0},{:.0}) size={:.0}x{:.0}",
-            rect.pos.x, rect.pos.y, rect.size.x, rect.size.y
-        ));
-        while self.file_tree.draw_walk(cx, scope, walk).is_step() {
-            self.file_tree
-                .set_folder_is_open(cx, live_id!(root), true, Animate::No);
-            if let Some(state) = scope.data.get::<State>()
-                && let Some(ref ft_data) = state.file_tree_data {
-                    Self::draw_tree_node(
-                        cx,
-                        &mut self.file_tree,
-                        &ft_data.root,
-                        live_id!(root),
-                    );
-                }
-        }
-        DrawStep::done()
-    }
-
-    fn handle_event(&mut self, cx: &mut Cx, event: &Event, scope: &mut Scope) {
-        self.file_tree.handle_event(cx, event, scope);
-        self.widget_match_event(cx, event, scope);
-    }
-}
-
-impl FileTreePanel {
-    // 递归绘制文件树节点：图片文件用 image_idx+1 做节点 id，文件夹用路径哈希做节点 id
-    // 首次出现的文件夹自动展开（is_folder 尚不存在时），之后保持用户的开合选择
-    fn draw_tree_node(
-        cx: &mut Cx2d,
-        file_tree: &mut FileTree,
-        node: &FileTreeNode,
-        node_id: LiveId,
-    ) {
-        if let Some(image_idx) = node.image_idx {
-            file_tree.file(cx, LiveId(image_idx as u64 + 1), &node.name);
-        } else {
-            if !file_tree.is_folder(node_id) {
-                file_tree.set_folder_is_open(cx, node_id, true, Animate::No);
-            }
-            if file_tree.begin_folder(cx, node_id, &node.name).is_ok() {
-                for child in &node.children {
-                    let child_id = match child.image_idx {
-                        Some(image_idx) => LiveId(image_idx as u64 + 1),
-                        None => LiveId::from_str(&child.path),
-                    };
-                    Self::draw_tree_node(cx, file_tree, child, child_id);
-                }
-                file_tree.end_folder();
-            }
-        }
-    }
-}
-impl WidgetMatchEvent for FileTreePanel {
-    fn handle_actions(&mut self, cx: &mut Cx, actions: &Actions, _scope: &mut Scope) {
-        let ft_uid = self.file_tree.widget_uid();
-        for action in actions {
-            if let Some(item) = action.as_widget_action()
-                && item.widget_uid == ft_uid
-                    && let FileTreeAction::FileClicked(file_id) = item.cast() {
-                        // 文件节点 id = image_idx + 1，直接对应 image_paths 下标
-                        let idx = file_id.0 as usize - 1;
-                        let state = _scope.data.get::<State>().unwrap();
-                        if idx < state.image_paths.len() {
-                            cx.widget_action(
-                                self.widget_uid(),
-                                FileTreeClicked { image_index: idx },
-                            );
-                        }
-                    }
         }
     }
 }
