@@ -159,7 +159,7 @@ impl Widget for ImageRow {
                     }
                     let image_idx = first_idx + item_idx;
 
-                    let (filtered_image_idx, trigger_spawn, attach_tex, spawn_path) = {
+                    let (filtered_image_idx, trigger_spawn, attach_tex, spawn_path, file_name) = {
                         let state = scope.data.get_mut::<State>().unwrap();
                         let filtered_image_idx = state.filtered_image_idxs[image_idx];
                         let trigger_spawn = if state.loaded_image_idxs.insert(filtered_image_idx) {
@@ -179,7 +179,12 @@ impl Widget for ImageRow {
                         } else {
                             None
                         };
-                        (filtered_image_idx, trigger_spawn, attach_tex, spawn_path)
+                        let file_name = state.image_paths[filtered_image_idx]
+                            .file_name()
+                            .and_then(|n| n.to_str())
+                            .unwrap_or_default()
+                            .to_string();
+                        (filtered_image_idx, trigger_spawn, attach_tex, spawn_path, file_name)
                     };
 
                     let card = list.item(cx, item_idx, live_id!(ImageCard));
@@ -198,6 +203,7 @@ impl Widget for ImageRow {
                         && let Some(tex) = attach_tex {
                             card.image(cx, ids!(thumb)).set_texture(cx.cx, Some(tex));
                         }
+                    card.label(cx, ids!(img_name)).set_text(cx, &file_name);
                     if trigger_spawn
                         && let Some(image_path) = spawn_path {
                             std::thread::spawn(move || {

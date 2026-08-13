@@ -51,6 +51,12 @@ script_mod! {
                 fit: ImageFit.CropToFill,
                 margin: Inset{ left: 8.0, top: 8.0, right: 8.0, bottom: 8.0 }
             }
+            img_name := Label {
+                width: Fill,
+                height: Fit,
+                draw_text.text_size: 14.0,
+                margin: Inset{ left: 8.0, right: 8.0, bottom: 8.0 }
+            }
         }
     }
 }

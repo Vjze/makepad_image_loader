@@ -356,13 +356,10 @@ impl AppMain for App {
     fn script_mod(vm: &mut ScriptVm) -> ScriptValue {
         makepad_widgets::theme_mod(vm);
         script_eval!(vm, {
-            mod.theme = mod.themes.dark
+            mod.theme = mod.themes.light
         });
         makepad_widgets::widgets_mod(vm);
-        crate::widgets::image_card::script_mod(vm);
-        crate::widgets::image_grid::script_mod(vm);
-        crate::widgets::zoomable_view::script_mod(vm);
-        crate::widgets::file_tree_panel::script_mod(vm);
+        crate::script_mod(vm);
         self::script_mod(vm)
     }
     fn handle_event(&mut self, cx: &mut Cx, event: &Event) {
