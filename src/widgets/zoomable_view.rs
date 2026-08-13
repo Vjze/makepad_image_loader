@@ -19,8 +19,8 @@ pub struct ZoomConfig {
 impl Default for ZoomConfig {
     fn default() -> Self {
         Self {
-            min_zoom: 0.1,
-            max_zoom: 8.0,
+            min_zoom: 0.05,
+            max_zoom: 25.0,
             zoom_scale_factor: 1.1,
             pan_sensitivity: 1.0,
         }
@@ -63,6 +63,7 @@ script_mod! {
     mod.widgets.ZoomableView = set_type_default() do mod.widgets.ZoomableViewBase{
         width: Fill,
         height: Fill,
+        align: Align{x: 0.5 y: 0.5},
         image := Image {
             width: Fill,
             height: Fill,
@@ -148,10 +149,10 @@ impl Widget for ZoomableView {
         // 使用 hit-test 统一处理桌面鼠标与移动端触屏（均映射为 Finger* 事件）。
         let area = self.view.area();
         match event.hits(cx, area) {
-            Hit::FingerDown(fe) if in_slideshow && self.drag_state.zoom_level > 1.0 => {
-                // 双击重置缩放/平移。
+            Hit::FingerDown(fe) if in_slideshow => {
+                // 双击切换缩放：第一次放大，再次恢复。
                 if fe.tap_count >= 2 {
-                    self.reset_zoom(cx);
+                    self.toggle_double_tap_zoom(cx);
                     self.drag_state.dragging = false;
                 } else if fe.is_primary_hit() {
                     self.drag_state.dragging = true;
@@ -219,6 +220,17 @@ impl ZoomableView {
         self.redraw(cx);
     }
 
+    /// 双击切换缩放：处于原始尺寸（或接近）时放大到目标倍数，否则恢复原始。
+    fn toggle_double_tap_zoom(&mut self, cx: &mut Cx) {
+        let double_tap_zoom = 2.0;
+        if (self.drag_state.zoom_level - 1.0).abs() < 0.001 {
+            // 原始尺寸 -> 放大到 2 倍，并保持中心锚点。
+            self.adjust_zoom(cx, double_tap_zoom);
+        } else {
+            self.reset_zoom(cx);
+        }
+    }
+
     /// 以 `factor` 为乘数调整缩放，并保持中心锚点。
     fn adjust_zoom(&mut self, cx: &mut Cx, factor: f64) {
         let new_zoom = (self.drag_state.zoom_level * factor)
@@ -227,9 +239,6 @@ impl ZoomableView {
             return;
         }
         self.drag_state.zoom_level = new_zoom;
-        if (new_zoom - 1.0).abs() < 0.001 {
-            self.drag_state.pan_offset = dvec2(0.0, 0.0);
-        }
         self.redraw(cx);
     }
 
@@ -254,9 +263,6 @@ impl ZoomableView {
         self.drag_state.pan_offset = top_left_new - (rs - scaled_new) * 0.5;
         self.drag_state.zoom_level = new_zoom;
 
-        if (new_zoom - 1.0).abs() < 0.001 {
-            self.drag_state.pan_offset = dvec2(0.0, 0.0);
-        }
         self.redraw(cx);
     }
 }
