@@ -1,7 +1,6 @@
-use std::sync::atomic::{AtomicBool, AtomicU64, AtomicUsize, Ordering};
+use std::sync::atomic::{AtomicU64, AtomicUsize, Ordering};
 static DBG_DRAW_COUNT: AtomicUsize = AtomicUsize::new(0);
 static DBG_TIMER_ID: AtomicU64 = AtomicU64::new(0);
-static DBG_CAP1: AtomicBool = AtomicBool::new(false);
 static ZOOM_FACTOR: AtomicU64 = AtomicU64::new(f64::to_bits(1.0));
 static ZOOM_PAN_X: AtomicU64 = AtomicU64::new(f64::to_bits(0.0));
 static ZOOM_PAN_Y: AtomicU64 = AtomicU64::new(f64::to_bits(0.0));
@@ -22,27 +21,7 @@ use std::path::{Path, PathBuf};
 script_mod! {
     use mod.prelude.widgets.*
     use mod.widgets.*
-
-    // 给 DrawImage 增加圆角支持（rounded-box SDF 裁剪 alpha）
-    // 默认 border_radius: 0 不影响其他 Image；卡片缩略图单独开启
-    // mod.draw.DrawImage = mod.draw.DrawImage {
-    //     border_radius: uniform(0.0)
-    //     pixel: fn() {
-    //         let color = mix(self.get_color(), #3, self.async_load)
-    //         let a = color.w * self.opacity
-    //         if self.border_radius > 0.0 {
-    //             let r = self.border_radius
-    //             let c = self.pos * self.rect_size
-    //             let half = self.rect_size * 0.5
-    //             let q = abs(c - half) - (half - vec2(r, r))
-    //             let d = length(max(q, vec2(0.0, 0.0))) + min(max(q.x, q.y), 0.0) - r
-    //             let alpha = clamp(0.5 - d, 0.0, 1.0)
-    //             return Pal.premul(vec4(color.xyz, a * alpha))
-    //         }
-    //         return Pal.premul(vec4(color.xyz, a))
-    //     }
-    // }
-
+    
     let LEFT_ARROW = crate_resource("self://resources/left_arrow.svg");
     let RIGHT_ARROW = crate_resource("self://resources/right_arrow.svg");
     let LOOKING_GLASS = crate_resource("self://resources/looking_glass.svg");
@@ -337,7 +316,7 @@ script_mod! {
         split_view := Splitter {
             width: Fill, height: Fill
             axis: SplitterAxis.Horizontal
-            align: SplitterAlign.FromA(200.0)
+            align: SplitterAlign.FromA(0.0)
             size: 3.0
             min_vertical: 0.0
             min_horizontal: 0.0
@@ -509,27 +488,6 @@ impl AppMain for App {
     }
     fn handle_event(&mut self, cx: &mut Cx, event: &Event) {
         self.match_event(cx, event);
-        if let Event::Actions(actions) = event {
-            for action in actions.iter() {
-                if let Some(t) = action.downcast_ref::<ThumbDecoded>() {
-                    let mut ib = ImageBuffer::default();
-                    ib.width = t.width;
-                    ib.height = t.height;
-                    ib.data = t.data.clone();
-                    let tex = ib.into_new_texture(cx);
-                    self.state.thumb_textures.insert(t.image_idx, tex);
-                    self.state.thumb_order.push(t.image_idx);
-                    self.state.thumb_in_flight.remove(&t.image_idx);
-                    while self.state.thumb_textures.len() > THUMB_MAX_TEXTURES {
-                        if let Some(victim) = self.state.thumb_order.first().copied() {
-                            self.state.thumb_order.remove(0);
-                            self.state.thumb_textures.remove(&victim);
-                        }
-                    }
-                    self.ui.redraw(cx);
-                }
-            }
-        }
         if let Event::KeyDown(ke) = event {
             match ke.key_code {
                 KeyCode::Escape => {
@@ -543,38 +501,31 @@ impl AppMain for App {
                 _ => {}
             }
         }
-        if let Event::MouseDown(mouse) = event {
-            if self.state.in_slideshow
+        if let Event::MouseDown(mouse) = event
+            && self.state.in_slideshow
                 && mouse.button == MouseButton::PRIMARY
                 && self.state.image_zoom > 1.0
-            {
-                if let Some(zv) = self
+                && let Some(zv) = self
                     .ui
                     .widget(cx, ids!(slideshow.image_view))
                     .borrow::<ZoomableView>()
-                {
-                    if zv.last_rect.contains(mouse.abs) {
+                    && zv.last_rect.contains(mouse.abs) {
                         self.state.image_dragging = true;
                         self.state.image_drag_start = mouse.abs;
                         self.state.image_pan_start = self.state.image_pan;
                     }
-                }
-            }
-        }
-        if let Event::MouseMove(mouse) = event {
-            if self.state.in_slideshow && self.state.image_dragging {
+        if let Event::MouseMove(mouse) = event
+            && self.state.in_slideshow && self.state.image_dragging {
                 self.state.image_pan =
                     self.state.image_pan_start + (mouse.abs - self.state.image_drag_start);
                 self.apply_image_zoom(cx);
             }
-        }
-        if let Event::MouseUp(mouse) = event {
-            if self.state.image_dragging && mouse.button == MouseButton::PRIMARY {
+        if let Event::MouseUp(mouse) = event
+            && self.state.image_dragging && mouse.button == MouseButton::PRIMARY {
                 self.state.image_dragging = false;
             }
-        }
-        if let Event::Scroll(se) = event {
-            if self.state.in_slideshow && se.is_mouse && se.scroll.y != 0.0 {
+        if let Event::Scroll(se) = event
+            && self.state.in_slideshow && se.is_mouse && se.scroll.y != 0.0 {
                 let old_zoom = self.state.image_zoom;
                 let new_zoom = if se.scroll.y > 0.0 {
                     old_zoom / 1.1
@@ -606,54 +557,10 @@ impl AppMain for App {
                     self.apply_image_zoom(cx);
                 }
             }
-        }
-        if matches!(event, Event::Draw(_)) {
-            if DBG_DRAW_COUNT.fetch_add(1, Ordering::Relaxed) == 0 {
+        if matches!(event, Event::Draw(_))
+            && DBG_DRAW_COUNT.fetch_add(1, Ordering::Relaxed) == 0 {
                 DBG_TIMER_ID.store(cx.start_timeout(3.0).0, Ordering::Relaxed);
             }
-        }
-        if let Event::Timer(te) = event {
-            if te.timer_id == DBG_TIMER_ID.load(Ordering::Relaxed)
-                && !DBG_CAP1.swap(true, Ordering::Relaxed)
-            {
-                cx.capture_next_frame_to_file(std::path::PathBuf::from(
-                    "C:/Users/Administrator/AppData/Local/Temp/opencode/cap_app.png",
-                ));
-            }
-        }
-        if matches!(event, Event::Draw(_)) {
-            if let Some(sp) = self.ui.splitter(cx, ids!(split_view)).borrow() {
-                dbg(&format!(
-                    "SPLITTER align={:?} axis={:?} pos={:.0} area_a={:?} area_b={:?}",
-                    sp.align(),
-                    sp.axis(),
-                    sp.position(),
-                    sp.area_a().rect(cx),
-                    sp.area_b().rect(cx)
-                ));
-            } else {
-                dbg("SPLITTER not found");
-            }
-        }
-        if matches!(event, Event::Draw(_)) && self.state.image_paths.is_empty() {
-            let path = std::path::PathBuf::from("C:/Windows/Web/Wallpaper");
-            self.state.loaded_image_idxs.clear();
-            self.state.thumb_textures.clear();
-            self.state.thumb_order.clear();
-            self.state.thumb_in_flight.clear();
-            let (image_paths, root) = build_image_tree(&path);
-            self.state.image_paths = image_paths;
-            self.state.file_tree_data = Some(FileTreeData {
-                dir_path: path,
-                root,
-            });
-            let mut splitter = self.ui.splitter(cx, ids!(split_view));
-            splitter.set_align(cx, SplitterAlign::FromA(200.0));
-            self.ui
-                .label(cx, ids!(all))
-                .set_text(cx, &format!("共: {}张", self.state.image_paths.len()));
-            self.filter_image_paths(cx, "");
-        }
         let mut scope = Scope::with_data(&mut self.state);
         self.ui.handle_event(cx, event, &mut scope);
         // 移除无条件重绘——异步图片加载完毕后会自行触发绘制，Scroll/Drag 也会自行驱动
@@ -673,33 +580,24 @@ impl AppMain for App {
 
 impl MatchEvent for App {
     fn handle_actions(&mut self, cx: &mut Cx, actions: &Actions) {
-        if let Some(query) = self.ui.text_input(cx, ids!(query)).changed(&actions) {
-            self.filter_image_paths(cx, &query);
-        }
-        if self.ui.button(cx, ids!(search_btn)).clicked(&actions) {
-            self.load_image_paths(cx);
-        }
-        if self.ui.button(cx, ids!(slideshow_button)).clicked(&actions) {
-            self.open_slideshow(cx);
-        }
-        // 文件树展开/收起按钮
-        if self.ui.button(cx, ids!(filetree_btn)).clicked(&actions) {
-            if self.state.file_tree_data.is_some() {
-                self.state.file_tree_open = !self.state.file_tree_open;
-                let align = if self.state.file_tree_open {
-                    SplitterAlign::FromA(200.0)
-                } else {
-                    SplitterAlign::FromA(0.0)
-                };
-                // 直接设置 Splitter 的 align 属性并 redraw
-                let mut splitter = self.ui.splitter(cx, ids!(split_view));
-                splitter.set_align(cx, align);
-                self.ui.redraw(cx);
+        for action in actions.iter() {
+            if let Some(t) = action.downcast_ref::<ThumbDecoded>() {
+                let mut ib = ImageBuffer::default();
+                ib.width = t.width;
+                ib.height = t.height;
+                ib.data = t.data.clone();
+                let tex = ib.into_new_texture(cx);
+                self.state.thumb_textures.insert(t.image_idx, tex);
+                self.state.thumb_order.push(t.image_idx);
+                self.state.thumb_in_flight.remove(&t.image_idx);
+                while self.state.thumb_textures.len() > THUMB_MAX_TEXTURES {
+                    if let Some(victim) = self.state.thumb_order.first().copied() {
+                        self.state.thumb_order.remove(0);
+                        self.state.thumb_textures.remove(&victim);
+                    }
+                }
                 self.ui.redraw(cx);
             }
-        }
-        // FileTree 条目点击 + 图片卡片点击 - 用 action 遍历
-        for action in actions.iter() {
             if let Some(wa) = action.downcast_ref::<WidgetAction>() {
                 if let Some(ftc) = wa.action.downcast_ref::<FileTreeClicked>() {
                     let target_idx = ftc.image_index;
@@ -724,11 +622,32 @@ impl MatchEvent for App {
                 }
             }
         }
+        if self.ui.button(cx, ids!(search_btn)).clicked(actions) {
+            self.load_image_paths(cx);
+        }
+        if self.ui.button(cx, ids!(slideshow_button)).clicked(actions) {
+            self.open_slideshow(cx);
+        }
+        // 文件树展开/收起按钮
+        if self.ui.button(cx, ids!(filetree_btn)).clicked(actions)
+            && self.state.file_tree_data.is_some() {
+                self.state.file_tree_open = !self.state.file_tree_open;
+                let align = if self.state.file_tree_open {
+                    SplitterAlign::FromA(200.0)
+                } else {
+                    SplitterAlign::FromA(0.0)
+                };
+                // 直接设置 Splitter 的 align 属性并 redraw
+                let splitter = self.ui.splitter(cx, ids!(split_view));
+                splitter.set_align(cx, align);
+                self.ui.redraw(cx);
+                self.ui.redraw(cx);
+            }
         // 幻灯片左右导航按钮
-        if self.ui.button(cx, ids!(navigate_left)).clicked(&actions) {
+        if self.ui.button(cx, ids!(navigate_left)).clicked(actions) {
             self.navigate_left(cx);
         }
-        if self.ui.button(cx, ids!(navigate_right)).clicked(&actions) {
+        if self.ui.button(cx, ids!(navigate_right)).clicked(actions) {
             self.navigate_right(cx);
         }
     }
@@ -744,7 +663,7 @@ fn is_image_file(f: String) -> bool {
             return true;
         }
     }
-    return false;
+    false
 }
 #[derive(Debug)]
 pub struct State {
@@ -971,8 +890,8 @@ impl Widget for ImageCardWidget {
                     self.redraw(cx);
                 }
             }
-            Hit::FingerUp(fe) => {
-                if fe.is_over && fe.was_tap() && fe.is_primary_hit() {
+            Hit::FingerUp(fe)
+                if fe.is_over && fe.was_tap() && fe.is_primary_hit() => {
                     cx.widget_action(
                         self.widget_uid(),
                         ImageClicked {
@@ -980,7 +899,6 @@ impl Widget for ImageCardWidget {
                         },
                     );
                 }
-            }
             _ => {}
         }
         self.view.handle_event(cx, event, scope);
@@ -1036,12 +954,15 @@ fn downscale_image(buf: &ImageBuffer, max_dim: usize) -> Option<(usize, usize, V
                 }
             }
             let n = ((sy1 - sy0) * (sx1 - sx0)) as u64;
-            if n > 0 {
+            if let (Some(av), Some(rv), Some(gv), Some(bv)) = (
+                a.checked_div(n),
+                r.checked_div(n),
+                g.checked_div(n),
+                b.checked_div(n),
+            ) {
                 out.push(
-                    (((a / n) as u32) << 24)
-                        | (((r / n) as u32) << 16)
-                        | (((g / n) as u32) << 8)
-                        | ((b / n) as u32),
+                    ((av as u32) << 24) | ((rv as u32) << 16) | ((gv as u32) << 8)
+                        | (bv as u32),
                 );
             }
         }
@@ -1177,24 +1098,22 @@ impl Widget for ImageRow {
                     let mut do_set_tex = false;
                     if let Some(mut c) = card.borrow_mut::<ImageCardWidget>() {
                         c.image_index = image_idx;
-                        if attach_tex.is_some() {
-                            if c.last_thumb_idx != Some(filtered_image_idx) {
+                        if attach_tex.is_some()
+                            && c.last_thumb_idx != Some(filtered_image_idx) {
                                 c.last_thumb_idx = Some(filtered_image_idx);
                                 do_set_tex = true;
                             }
-                        }
                     }
-                    if do_set_tex {
-                        if let Some(tex) = attach_tex {
+                    if do_set_tex
+                        && let Some(tex) = attach_tex {
                             card.image(cx, ids!(thumb)).set_texture(cx.cx, Some(tex));
                         }
-                    }
-                    if trigger_spawn {
-                        if let Some(image_path) = spawn_path {
+                    if trigger_spawn
+                        && let Some(image_path) = spawn_path {
                             std::thread::spawn(move || {
-                                if let Ok(bytes) = std::fs::read(&image_path) {
-                                    if let Ok(buf) = decode_image_from_data(&bytes) {
-                                        if let Some((w, h, data)) =
+                                if let Ok(bytes) = std::fs::read(&image_path)
+                                    && let Ok(buf) = decode_image_from_data(&bytes)
+                                        && let Some((w, h, data)) =
                                             downscale_image(&buf, THUMB_MAX_DIM)
                                         {
                                             Cx::post_action(ThumbDecoded {
@@ -1204,11 +1123,8 @@ impl Widget for ImageRow {
                                                 data,
                                             });
                                         }
-                                    }
-                                }
                             });
                         }
-                    }
                     card.draw_all(cx, &mut Scope::empty());
                 }
             }
@@ -1250,7 +1166,7 @@ impl Widget for ZoomableView {
         let zw = rect.size.x * zoom;
         let zh = rect.size.y * zoom;
         let start = cx.align_list_len();
-        if let Err(step) = self.view.draw_walk(
+        self.view.draw_walk(
             cx,
             scope,
             Walk {
@@ -1260,9 +1176,7 @@ impl Widget for ZoomableView {
                 margin: Inset::default(),
                 metrics: Default::default(),
             },
-        ) {
-            return Err(step);
-        }
+        )?;
         cx.shift_align_range(
             &TurtleAlignRange {
                 start,
@@ -1302,17 +1216,16 @@ impl Widget for FileTreePanel {
         ));
         while self.file_tree.draw_walk(cx, scope, walk).is_step() {
             self.file_tree
-                .set_folder_is_open(cx, live_id!(root).into(), true, Animate::No);
-            if let Some(state) = scope.data.get::<State>() {
-                if let Some(ref ft_data) = state.file_tree_data {
+                .set_folder_is_open(cx, live_id!(root), true, Animate::No);
+            if let Some(state) = scope.data.get::<State>()
+                && let Some(ref ft_data) = state.file_tree_data {
                     Self::draw_tree_node(
                         cx,
                         &mut self.file_tree,
                         &ft_data.root,
-                        live_id!(root).into(),
+                        live_id!(root),
                     );
                 }
-            }
         }
         DrawStep::done()
     }
@@ -1355,9 +1268,9 @@ impl WidgetMatchEvent for FileTreePanel {
     fn handle_actions(&mut self, cx: &mut Cx, actions: &Actions, _scope: &mut Scope) {
         let ft_uid = self.file_tree.widget_uid();
         for action in actions {
-            if let Some(item) = action.as_widget_action() {
-                if item.widget_uid == ft_uid {
-                    if let FileTreeAction::FileClicked(file_id) = item.cast() {
+            if let Some(item) = action.as_widget_action()
+                && item.widget_uid == ft_uid
+                    && let FileTreeAction::FileClicked(file_id) = item.cast() {
                         // 文件节点 id = image_idx + 1，直接对应 image_paths 下标
                         let idx = file_id.0 as usize - 1;
                         let state = _scope.data.get::<State>().unwrap();
@@ -1368,8 +1281,6 @@ impl WidgetMatchEvent for FileTreePanel {
                             );
                         }
                     }
-                }
-            }
         }
     }
 }
