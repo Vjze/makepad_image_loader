@@ -38,6 +38,8 @@ struct DragState {
     drag_start: DVec2,
     pan_start: DVec2,
     dragging: bool,
+    /// 双指捏合时，上一次两指之间的距离（用于计算缩放比例）。
+    previous_pinch_distance: Option<f64>,
 }
 
 impl Default for DragState {
@@ -48,6 +50,7 @@ impl Default for DragState {
             drag_start: dvec2(0.0, 0.0),
             pan_start: dvec2(0.0, 0.0),
             dragging: false,
+            previous_pinch_distance: None,
         }
     }
 }
@@ -121,41 +124,90 @@ impl Widget for ZoomableView {
     fn handle_event(&mut self, cx: &mut Cx, event: &Event, scope: &mut Scope) {
         let in_slideshow = scope.data.get::<State>().map(|s| s.in_slideshow).unwrap_or(false);
 
-        match event {
-            Event::MouseDown(mouse)
-                if mouse.button == MouseButton::PRIMARY
-                    && in_slideshow
-                    && self.drag_state.zoom_level > 1.0
-                    && self.last_rect.contains(mouse.abs) => {
-                self.drag_state.dragging = true;
-                self.drag_state.drag_start = mouse.abs;
-                self.drag_state.pan_start = self.drag_state.pan_offset;
+        // 键盘缩放（+ / - / 0），桌面端与移动端外接键盘均适用。
+        if let Event::KeyDown(ke) = event {
+            if in_slideshow {
+                match ke.key_code {
+                    KeyCode::Equals | KeyCode::NumpadAdd => {
+                        self.adjust_zoom(cx, 1.0 + 0.02);
+                        return;
+                    }
+                    KeyCode::Minus | KeyCode::NumpadSubtract => {
+                        self.adjust_zoom(cx, 1.0 / (1.0 + 0.02));
+                        return;
+                    }
+                    KeyCode::Key0 | KeyCode::Numpad0 => {
+                        self.reset_zoom(cx);
+                        return;
+                    }
+                    _ => {}
+                }
             }
-            Event::MouseMove(mouse)
-                if in_slideshow && self.drag_state.dragging => {
-                let delta = (mouse.abs - self.drag_state.drag_start) * self.config.pan_sensitivity;
+        }
+
+        // 使用 hit-test 统一处理桌面鼠标与移动端触屏（均映射为 Finger* 事件）。
+        let area = self.view.area();
+        match event.hits(cx, area) {
+            Hit::FingerDown(fe) if in_slideshow && self.drag_state.zoom_level > 1.0 => {
+                // 双击重置缩放/平移。
+                if fe.tap_count >= 2 {
+                    self.reset_zoom(cx);
+                    self.drag_state.dragging = false;
+                } else if fe.is_primary_hit() {
+                    self.drag_state.dragging = true;
+                    self.drag_state.drag_start = fe.abs;
+                    self.drag_state.pan_start = self.drag_state.pan_offset;
+                }
+            }
+            Hit::FingerMove(fe) if in_slideshow && self.drag_state.dragging => {
+                let delta = (fe.abs - self.drag_state.drag_start) * self.config.pan_sensitivity;
                 self.drag_state.pan_offset = self.drag_state.pan_start + delta;
                 self.redraw(cx);
             }
-            Event::MouseUp(mouse)
-                if mouse.button == MouseButton::PRIMARY && self.drag_state.dragging => {
-                self.drag_state.dragging = false;
+            Hit::FingerUp(fe) if in_slideshow && self.drag_state.dragging => {
+                if fe.is_over {
+                    self.drag_state.dragging = false;
+                }
             }
-            Event::Scroll(se) if in_slideshow && se.is_mouse && se.scroll.y != 0.0 => {
-                let factor = if se.scroll.y > 0.0 {
-                    1.0 / self.config.zoom_scale_factor
-                } else {
-                    self.config.zoom_scale_factor
-                };
-                // 光标锚定缩放：保持光标下的图像点不动。
-                if self.last_rect.contains(se.abs) {
-                    self.anchor_zoom(cx, factor, se.abs);
-                } else {
-                    self.adjust_zoom(cx, factor);
+            Hit::FingerScroll(fse) if in_slideshow => {
+                // 精细化滚轮缩放：滚动幅度越大缩放越快（借鉴 Robrix）。
+                let scroll_delta = fse.scroll.y;
+                if scroll_delta != 0.0 {
+                    let normalized = (scroll_delta.abs() / 200.0).clamp(0.005, 0.06);
+                    let factor = if scroll_delta > 0.0 {
+                        1.0 / (1.0 + normalized)
+                    } else {
+                        1.0 + normalized
+                    };
+                    if self.last_rect.contains(fse.abs) {
+                        self.anchor_zoom(cx, factor, fse.abs);
+                    } else {
+                        self.adjust_zoom(cx, factor);
+                    }
                 }
             }
             _ => {}
         }
+
+        // 双指捏合缩放（触屏多点手势）。
+        if let Event::TouchUpdate(touch_event) = event {
+            if in_slideshow {
+                if touch_event.touches.len() == 2 {
+                    let touch1 = &touch_event.touches[0];
+                    let touch2 = &touch_event.touches[1];
+                    let current_distance = (touch1.abs - touch2.abs).length();
+
+                    if let Some(previous_distance) = self.drag_state.previous_pinch_distance {
+                        let scale = current_distance / previous_distance;
+                        self.adjust_zoom(cx, scale);
+                    }
+                    self.drag_state.previous_pinch_distance = Some(current_distance);
+                } else {
+                    self.drag_state.previous_pinch_distance = None;
+                }
+            }
+        }
+
         self.view.handle_event(cx, event, scope);
     }
 }
