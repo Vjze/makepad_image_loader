@@ -1,22 +1,9 @@
 use makepad_widgets::*;
-use std::sync::atomic::{AtomicU64, Ordering};
 
 // 缩略图后台解码参数
 pub(crate) const THUMB_MAX_DIM: usize = 512;
 pub(crate) const THUMB_MAX_IN_FLIGHT: usize = 8;
 pub(crate) const THUMB_MAX_TEXTURES: usize = 96;
-
-// ZoomableView 与 App 共用的缩放状态 statics（draw_walk 时读取）
-pub(crate) static ZOOM_FACTOR: AtomicU64 = AtomicU64::new(f64::to_bits(1.0));
-pub(crate) static ZOOM_PAN_X: AtomicU64 = AtomicU64::new(f64::to_bits(0.0));
-pub(crate) static ZOOM_PAN_Y: AtomicU64 = AtomicU64::new(f64::to_bits(0.0));
-
-// 把缩放/平移状态写入 makepad 的全局 statics
-pub(crate) fn store_zoom_state(zoom: f64, pan: Vec2d) {
-    ZOOM_FACTOR.store(f64::to_bits(zoom), Ordering::Relaxed);
-    ZOOM_PAN_X.store(f64::to_bits(pan.x), Ordering::Relaxed);
-    ZOOM_PAN_Y.store(f64::to_bits(pan.y), Ordering::Relaxed);
-}
 
 // 把图片 buffer 缩小到最长边不超过 max_dim（用于缩略图，避免全尺寸贴图占显存）。
 // 采用盒式平均下采样。

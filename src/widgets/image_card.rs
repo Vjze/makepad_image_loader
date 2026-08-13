@@ -2,7 +2,10 @@ use makepad_widgets::*;
 use crate::actions::OpenImage;
 
 // ---------------------------------------------------------------------------
-// ImageCardWidget：包裹固定尺寸卡片 View 的自定义 Widget
+// ImageCardWidget：圆角卡片，图片悬浮在卡片内（图片本身也圆角），下方居中文件名
+//   - 卡片背景/圆角/边框由 RoundedView 的 draw_bg 绘制
+//   - 图片圆角通过覆盖 Image 的 draw_bg shader（Sdf2d 圆角 mask）实现
+//   - hover 放大 + 高亮由 animator 驱动
 // ---------------------------------------------------------------------------
 script_mod! {
     use mod.prelude.widgets.*
@@ -11,51 +14,77 @@ script_mod! {
     mod.widgets.ImageCardWidgetBase = #(ImageCardWidget::register_widget(vm))
     mod.widgets.ImageCardWidget = set_type_default() do mod.widgets.ImageCardWidgetBase{
         ..mod.widgets.RoundedView {
-        width: 250,
-        height: 250,
-        flow: Down,
-        align: Center,
+            width: 260,
+            height: 300,
+            flow: Down,
+            spacing: 6.0,
+            padding: 10.0,
+            show_bg: true,
+
+            // 卡片底色 + 圆角 + 边框
+            draw_bg +: {
+                color: #2a2b36
+                border_radius: 12.0
+                border_size: 1.5
+                border_color: #3a3b4a
+            }
 
             animator: Animator {
-                    ignore_missing: true
-                    hover: {
-                        default: @off
-                        off: AnimatorState {
-                            from: {all: Forward {duration: 0.08}}
-                            apply: {
-                                width: 250,
-                                height: 250,
-                                draw_bg: {hover: 0.0}
-                            }
+                // ignore_missing: true
+                hover: {
+                    default: @off
+                    off: AnimatorState {
+                        redraw: true
+                        from: {all: Snap}
+                        apply: {
+                            width: 260,
+                            height: 300,
+                            draw_bg: {color: #2a2b36, border_color: #3a3b4a}
                         }
-                        on: AnimatorState {
-                            cursor: MouseCursor.Hand
-                            from: {all: Snap}
-                            apply: {
-                                width: 265,
-                                height: 265,
-                                draw_bg: {hover: 1.0}
-                            }
+                    }
+                    on: AnimatorState {
+                        cursor: MouseCursor.Hand
+                        redraw: true
+                        from: {all: Forward {duration: 0.1}}
+                        apply: {
+                            width: 280,
+                            height: 320,
+                            draw_bg: {color: #343644, border_color: #5a7ac0}
                         }
                     }
                 }
-
-            draw_bg +: {
-                border_size: uniform(2.0)
-                border_radius: uniform(12.5)
             }
 
+            // 悬浮在卡片内、带圆角的缩略图
             thumb := Image {
                 width: Fill,
                 height: Fill,
                 fit: ImageFit.CropToFill,
-                margin: Inset{ left: 8.0, top: 8.0, right: 8.0, bottom: 8.0 }
+                margin: 4.0,
+                draw_bg +: {
+                    // 自定义圆角半径 uniform（DrawQuad 基类没有，需自行声明）
+                    border_radius: uniform(8.0)
+                    pixel: fn() {
+                        let sdf = Sdf2d.viewport(self.pos * self.rect_size)
+                        sdf.box(0.0, 0.0, self.rect_size.x, self.rect_size.y, self.border_radius)
+                        let color = self.get_color()
+                        // shape < 0 在圆角内（signed distance 为负）；
+                        // 反转 smoothstep 让圆角内保留、圆角外透明，边缘抗锯齿
+                        let mask = 1.0 - smoothstep(0.0, 1.0, sdf.shape)
+                        return Pal.premul(vec4(color.xyz, color.w * self.opacity * mask))
+                    }
+                }
             }
+
+            // 图片下方居中的文件名
             img_name := Label {
                 width: Fill,
                 height: Fit,
-                draw_text.text_size: 14.0,
-                margin: Inset{ left: 8.0, right: 8.0, bottom: 8.0 }
+                draw_text +: {
+                    text_style +: {font_size: 12.0}
+                    color: #b8bcd0
+                }
+                align: Align{x: 0.5 y: 0.5}
             }
         }
     }
@@ -65,8 +94,6 @@ script_mod! {
 pub struct ImageCardWidget {
     #[deref]
     view: View,
-    #[live]
-    draw_bg: DrawColor,
     #[rust]
     pub image_index: usize,
     #[rust]
@@ -77,57 +104,13 @@ pub struct ImageCardWidget {
 
 impl Widget for ImageCardWidget {
     fn draw_walk(&mut self, cx: &mut Cx2d, scope: &mut Scope, walk: Walk) -> DrawStep {
-        let rect = cx.peek_walk_turtle(walk);
-
-        if self.is_hovering {
-            let pad = 10.0;
-            self.draw_bg.color = vec4(0.45, 0.60, 0.85, 0.20);
-            self.draw_bg.draw_abs(
-                cx,
-                Rect {
-                    pos: dvec2(rect.pos.x - pad, rect.pos.y - pad),
-                    size: dvec2(rect.size.x + pad * 2.0, rect.size.y + pad * 2.0),
-                },
-            );
-
-            cx.walk_turtle(walk);
-
-            let scale = 1.12;
-            let sw = rect.size.x * scale;
-            let sh = rect.size.y * scale;
-            let dx = (rect.size.x - sw) * 0.5;
-            let dy = (rect.size.y - sh) * 0.5;
-
-            cx.begin_turtle(
-                Walk {
-                    width: Size::Fixed(sw),
-                    height: Size::Fixed(sh),
-                    abs_pos: Some(dvec2(rect.pos.x + dx, rect.pos.y + dy)),
-                    margin: Inset::default(),
-                    metrics: Default::default(),
-                },
-                Layout::default(),
-            );
-            let _ = self.view.draw_walk(
-                cx,
-                scope,
-                Walk {
-                    width: Size::Fixed(sw),
-                    height: Size::Fixed(sh),
-                    abs_pos: None,
-                    margin: Inset::default(),
-                    metrics: Default::default(),
-                },
-            );
-            cx.end_turtle();
-
-            DrawStep::done()
-        } else {
-            self.view.draw_walk(cx, scope, walk)
-        }
+        // 放大由 animator 改变 width/height 驱动，这里直接交给 view 绘制。
+        self.view.draw_walk(cx, scope, walk)
     }
 
     fn handle_event(&mut self, cx: &mut Cx, event: &Event, scope: &mut Scope) {
+        // 用当前帧实时 area 做命中判断。缓存的 Area 会因 redraw_id 过期而失效
+        // （is_valid 返回 false），导致点击 FingerUp 永远不触发。
         let area = self.view.area();
         let hit = event.hits(cx, area);
 

@@ -15,9 +15,9 @@ script_mod! {
     mod.widgets.ImageRowBase = #(ImageRow::register_widget(vm))
     mod.widgets.ImageRow = set_type_default() do mod.widgets.ImageRowBase{
         width: Fill,
-        height: 250,
+        height: 330,
         PortalList {
-            height: 250,
+            height: 330,
             flow: Right,
             spacing: 12.0,
             ImageCard := mod.widgets.ImageCardWidget {}
@@ -55,7 +55,7 @@ impl Widget for ImageGrid {
             if let Some(mut list) = item.as_portal_list().borrow_mut() {
                 let grid_width = cx.peek_walk_turtle(walk).size.x.max(1.0);
                 let spacing = 12.0;
-                let card_width = 250.0;
+                let card_width = 260.0;
                 let cols = ((grid_width + spacing) / (card_width + spacing))
                     .floor()
                     .max(1.0) as usize;
@@ -134,7 +134,7 @@ impl Widget for ImageRow {
         };
 
         let rect = cx.peek_walk_turtle(walk);
-        let card_width = 250.0_f64;
+        let card_width = 260.0_f64;
         let spacing = 12.0_f64;
         let row_content_width =
             num_items as f64 * card_width + (num_items.saturating_sub(1)) as f64 * spacing;

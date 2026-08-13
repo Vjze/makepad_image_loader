@@ -4,7 +4,6 @@ use makepad_widgets::*;
 use crate::state::State;
 use crate::actions::OpenImage;
 use crate::tree::{build_image_tree, FileTreeData};
-use crate::thumb::store_zoom_state;
 
 static DBG_DRAW_COUNT: AtomicUsize = AtomicUsize::new(0);
 static DBG_TIMER_ID: AtomicU64 = AtomicU64::new(0);
@@ -308,8 +307,14 @@ impl App {
 
     fn set_current_image(&mut self, cx: &mut Cx, image_idx: Option<usize>) {
         self.state.current_image_idx = image_idx;
-        self.state.image_zoom = 1.0;
-        self.state.image_pan = dvec2(0.0, 0.0);
+        // 重置缩放/平移（缩放状态由 ZoomableView 内部管理）。
+        if let Some(mut zv) = self
+            .ui
+            .widget(cx, ids!(slideshow.image_view))
+            .borrow_mut::<crate::widgets::zoomable_view::ZoomableView>()
+        {
+            zv.reset_zoom(cx);
+        }
         let image = self.ui.image(cx, ids!(slideshow.image_view.image));
         if let Some(image_idx) = self.state.current_image_idx {
             let filtered_image_idx = self.state.filtered_image_idxs[image_idx];
@@ -318,14 +323,6 @@ impl App {
         } else {
             let _ = image.load_image_dep_by_path(cx, "");
         }
-        if self.state.in_slideshow {
-            self.apply_image_zoom(cx);
-        }
-        self.ui.redraw(cx);
-    }
-
-    fn apply_image_zoom(&mut self, cx: &mut Cx) {
-        store_zoom_state(self.state.image_zoom, self.state.image_pan);
         self.ui.redraw(cx);
     }
 
@@ -356,7 +353,7 @@ impl AppMain for App {
     fn script_mod(vm: &mut ScriptVm) -> ScriptValue {
         makepad_widgets::theme_mod(vm);
         script_eval!(vm, {
-            mod.theme = mod.themes.light
+            mod.theme = mod.themes.dark
         });
         makepad_widgets::widgets_mod(vm);
         crate::script_mod(vm);
