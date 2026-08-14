@@ -14,4 +14,6 @@ pub struct ThumbDecoded {
     pub width: usize,
     pub height: usize,
     pub data: Vec<u32>,
+    /// 解码结果所属的文件夹代际，与 State::generation 比对以丢弃过期结果。
+    pub generation: u64,
 }

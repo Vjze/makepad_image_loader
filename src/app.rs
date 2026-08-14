@@ -249,6 +249,8 @@ impl App {
         self.state.thumb_textures.clear();
         self.state.thumb_order.clear();
         self.state.thumb_in_flight.clear();
+        // 递增代际，使旧文件夹遗留的后台解码结果在回传时被丢弃。
+        self.state.generation = self.state.generation.wrapping_add(1);
         if let Some(p) = rfd::FileDialog::new().pick_folder() {
             let path = p.to_path_buf();
             let dir_path = path.clone();

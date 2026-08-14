@@ -92,12 +92,16 @@ impl WidgetMatchEvent for ImageGrid {
         // 缩略图解码完成 → 更新纹理并维护 LRU（由 ImageGrid 负责其触发的资源）
         for action in actions.iter() {
             if let Some(t) = action.downcast_ref::<ThumbDecoded>() {
+                let state = scope.data.get_mut::<State>().unwrap();
+                // 丢弃过期代际的解码结果（来自之前文件夹的后台线程）。
+                if t.generation != state.generation {
+                    continue;
+                }
                 let mut ib = ImageBuffer::default();
                 ib.width = t.width;
                 ib.height = t.height;
                 ib.data = t.data.clone();
                 let tex = ib.into_new_texture(cx);
-                let state = scope.data.get_mut::<State>().unwrap();
                 state.thumb_textures.insert(t.image_idx, tex);
                 state.thumb_order.push(t.image_idx);
                 state.thumb_in_flight.remove(&t.image_idx);
@@ -159,8 +163,9 @@ impl Widget for ImageRow {
                     }
                     let image_idx = first_idx + item_idx;
 
-                    let (filtered_image_idx, trigger_spawn, attach_tex, spawn_path, file_name) = {
+                    let (filtered_image_idx, trigger_spawn, attach_tex, spawn_path, file_name, generation) = {
                         let state = scope.data.get_mut::<State>().unwrap();
+                        let generation = state.generation;
                         let filtered_image_idx = state.filtered_image_idxs[image_idx];
                         let trigger_spawn = if state.loaded_image_idxs.insert(filtered_image_idx) {
                             if state.thumb_in_flight.len() < THUMB_MAX_IN_FLIGHT {
@@ -184,7 +189,7 @@ impl Widget for ImageRow {
                             .and_then(|n| n.to_str())
                             .unwrap_or_default()
                             .to_string();
-                        (filtered_image_idx, trigger_spawn, attach_tex, spawn_path, file_name)
+                        (filtered_image_idx, trigger_spawn, attach_tex, spawn_path, file_name, generation)
                     };
 
                     let card = list.item(cx, item_idx, live_id!(ImageCard));
@@ -216,6 +221,7 @@ impl Widget for ImageRow {
                                             width: w,
                                             height: h,
                                             data,
+                                            generation,
                                         });
                                     }
                             });

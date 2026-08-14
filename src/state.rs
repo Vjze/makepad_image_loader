@@ -18,6 +18,8 @@ pub struct State {
     pub(crate) thumb_textures: HashMap<usize, Texture>,
     pub(crate) thumb_order: Vec<usize>,
     pub(crate) thumb_in_flight: HashSet<usize>,
+    /// 文件夹加载代际：每次切换文件夹时递增，用于丢弃旧文件夹遗留的后台解码结果。
+    pub(crate) generation: u64,
 }
 
 impl State {
@@ -54,6 +56,7 @@ impl Default for State {
             thumb_textures: HashMap::new(),
             thumb_order: Vec::new(),
             thumb_in_flight: HashSet::new(),
+            generation: 0,
         }
     }
 }

@@ -2,6 +2,9 @@ use makepad_widgets::*;
 use crate::actions::OpenImage;
 use crate::state::State;
 use crate::tree::FileTreeNode;
+use crate::widgets::local_file_tree::{
+    LocalFileTree, LocalFileTreeAction, LocalFileTreeWidgetExt, LocalFileTreeWidgetRefExt,
+};
 
 // ---------------------------------------------------------------------------
 // FileTreePanel：文件树组件，点击文件节点 → 发出 OpenImage 命令
@@ -16,7 +19,7 @@ script_mod! {
         width: Fill,
         height: Fill,
         flow: Down,
-        file_tree := FileTree {
+        file_tree := LocalFileTree {
             width: Fill,
             height: Fill,
             node_height: 24.0,
@@ -34,7 +37,7 @@ impl Widget for FileTreePanel {
     fn draw_walk(&mut self, cx: &mut Cx2d, scope: &mut Scope, walk: Walk) -> DrawStep {
         crate::dbg("FILETREE draw_walk called");
         while let Some(step) = self.view.draw_walk(cx, scope, walk).step() {
-            if let Some(mut file_tree) = step.as_file_tree().borrow_mut() {
+            if let Some(mut file_tree) = step.as_local_file_tree().borrow_mut() {
                 file_tree.set_folder_is_open(cx, live_id!(root), true, Animate::No);
                 if let Some(state) = scope.data.get::<State>()
                     && let Some(ref ft_data) = state.file_tree_data {
@@ -47,13 +50,13 @@ impl Widget for FileTreePanel {
 
     fn handle_event(&mut self, cx: &mut Cx, event: &Event, scope: &mut Scope) {
         let uid = self.widget_uid();
-        let file_tree = self.view.file_tree(cx, ids!(file_tree));
+        let file_tree = self.view.local_file_tree(cx, ids!(file_tree));
 
         self.view.handle_event(cx, event, scope);
 
         if let Event::Actions(actions) = event
             && let Some(item) = actions.find_widget_action(file_tree.widget_uid())
-                && let FileTreeAction::FileClicked(file_id) = item.cast() {
+                && let LocalFileTreeAction::FileClicked(file_id) = item.cast() {
                     let idx = file_id.0 as usize - 1;
                     let state = scope.data.get::<State>().unwrap();
                     if idx < state.image_paths.len() {
@@ -66,7 +69,7 @@ impl Widget for FileTreePanel {
 impl FileTreePanel {
     fn draw_tree_node(
         cx: &mut Cx2d,
-        file_tree: &mut FileTree,
+        file_tree: &mut LocalFileTree,
         node: &FileTreeNode,
         node_id: LiveId,
     ) {
