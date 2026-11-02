@@ -1,0 +1,8 @@
+[package]
+name = "image_loader_core"
+version = "0.1.0"
+edition = "2024"
+description = "Shared, framework-agnostic logic for the image loader: folder scanning, decoding, thumbnail generation and an LRU thumbnail cache."
+
+[dependencies]
+image = { version = "0.25", default-features = false, features = ["png", "jpeg", "gif", "webp", "bmp", "ico", "tiff", "pnm"] }

@@ -1,1 +1,6 @@
 /target
+/test_many
+*.log
+*.png
+*.txt
+/.workbuddy

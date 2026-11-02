@@ -1,3 +1,7 @@
+[workspace]
+members = ["core", "xilem_app"]
+resolver = "2"
+
 [package]
 name = "img_loader"
 version = "0.1.0"
@@ -5,8 +9,8 @@ edition = "2024"
 
 [dependencies]
 makepad-widgets = { git = "https://github.com/makepad/makepad.git", branch = "dev" }
+image_loader_core = { path = "core" }
 rfd = "0.17.2"
 jwalk = "0.9"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter", "chrono"] }
-

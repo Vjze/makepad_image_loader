@@ -1,7 +1,9 @@
 use makepad_widgets::*;
 use crate::actions::ThumbDecoded;
 use crate::state::State;
-use crate::thumb::{downscale_image, THUMB_MAX_DIM, THUMB_MAX_IN_FLIGHT, THUMB_MAX_TEXTURES};
+use crate::thumb::{
+    downscale_rgba8, rgba8_to_argb_u32, THUMB_MAX_DIM, THUMB_MAX_IN_FLIGHT, THUMB_MAX_TEXTURES,
+};
 use crate::widgets::image_card::ImageCardWidget;
 
 // ---------------------------------------------------------------------------
@@ -211,19 +213,25 @@ impl Widget for ImageRow {
                     card.label(cx, ids!(img_name)).set_text(cx, &file_name);
                     if trigger_spawn
                         && let Some(image_path) = spawn_path {
+                            // 解码与下采样复用公共 crate：RGBA8 解码 -> 盒式平均下采样 -> 转 Makepad 纹理需要的 ARGB u32。
                             std::thread::spawn(move || {
-                                if let Ok(bytes) = std::fs::read(&image_path)
-                                    && let Ok(buf) = decode_image_from_data(&bytes)
-                                        && let Some((w, h, data)) =
-                                            downscale_image(&buf, THUMB_MAX_DIM) {
-                                        Cx::post_action(ThumbDecoded {
-                                            image_idx: filtered_image_idx,
-                                            width: w,
-                                            height: h,
-                                            data,
-                                            generation,
-                                        });
-                                    }
+                                if let Ok((w, h, rgba)) =
+                                    image_loader_core::decode::decode_rgba8(&image_path)
+                                        && let Some((w, h, rgba)) = downscale_rgba8(
+                                            &rgba,
+                                            w as usize,
+                                            h as usize,
+                                            THUMB_MAX_DIM,
+                                        ) {
+                                            let data = rgba8_to_argb_u32(&rgba);
+                                            Cx::post_action(ThumbDecoded {
+                                                image_idx: filtered_image_idx,
+                                                width: w,
+                                                height: h,
+                                                data,
+                                                generation,
+                                            });
+                                        }
                             });
                         }
                     card.draw_all(cx, &mut Scope::empty());

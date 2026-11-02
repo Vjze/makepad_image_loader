@@ -1,0 +1,12 @@
+[package]
+name = "xilem_app"
+version = "0.1.0"
+edition = "2024"
+description = "Xilem (Rust native GUI) re-implementation of the image loader UI, sharing image_loader_core with the Makepad version."
+
+[dependencies]
+xilem = "0.4.0"
+image_loader_core = { path = "../core" }
+rfd = "0.17.2"
+ui_events = { package = "ui-events", version = "0.2.0" }
+tokio = { version = "1", features = ["sync", "rt", "rt-multi-thread"] }

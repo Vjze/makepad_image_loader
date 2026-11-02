@@ -3,7 +3,7 @@ use makepad_widgets::*;
 
 use crate::state::State;
 use crate::actions::OpenImage;
-use crate::tree::{build_image_tree, FileTreeData};
+use crate::tree::scan_directory;
 
 static DBG_DRAW_COUNT: AtomicUsize = AtomicUsize::new(0);
 static DBG_TIMER_ID: AtomicU64 = AtomicU64::new(0);
@@ -253,13 +253,10 @@ impl App {
         self.state.generation = self.state.generation.wrapping_add(1);
         if let Some(p) = rfd::FileDialog::new().pick_folder() {
             let path = p.to_path_buf();
-            let dir_path = path.clone();
-            let (image_paths, root) = build_image_tree(&path);
-            self.state.image_paths = image_paths;
-            self.state.file_tree_data = Some(FileTreeData {
-                dir_path: dir_path.clone(),
-                root,
-            });
+            // 扫描逻辑复用公共 crate（与 Xilem 版一致）。
+            let scan = scan_directory(&path);
+            self.state.image_paths = scan.image_paths;
+            self.state.file_tree_data = Some(scan.tree);
             self.state.file_tree_open = true;
             let splitter = self.ui.splitter(cx, ids!(split_view));
             splitter.set_align(cx, SplitterAlign::FromA(200.0));
