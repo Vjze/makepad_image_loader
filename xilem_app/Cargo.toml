@@ -7,7 +7,7 @@ description = "Xilem (Rust native GUI) re-implementation of the image loader UI,
 [dependencies]
 # 以本地 xilem 仓库为准（main 分支，含 resize_observer / grid 等新视图），
 # 不使用 crates.io 发布的 0.4.0。
-xilem = { path = "C:/Users/Administrator/Downloads/xilem-main/xilem-main/xilem" }
+xilem = { git = "https://github.com/linebender/xilem.git", branch = "main" }
 image_loader_core = { path = "../core" }
 rfd = "0.17.2"
 ui_events = { package = "ui-events", version = "0.3.0" }
@@ -16,7 +16,7 @@ tokio = { version = "1", features = ["sync", "rt", "rt-multi-thread"] }
 [dev-dependencies]
 # 仅测试期使用：启用 masonry 的 testing 特性以获得 TestHarness（布局回归测试用）。
 # dev-dependency 的 feature 不会影响 cargo build 出的正式二进制。
-masonry = { path = "C:/Users/Administrator/Downloads/xilem-main/xilem-main/masonry", features = [
+masonry = { git = "https://github.com/linebender/xilem.git", branch = "main", features = [
     "testing",
 ] }
 # 仅测试期使用：渲染网格布局快照为 PNG。

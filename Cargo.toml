@@ -1,6 +1,5 @@
 [workspace]
-# members = ["core", "xilem_app", "ely_gpui_app"]
-members = ["core", "ely_gpui_app"]
+members = ["core", "xilem_app", "ely_gpui_app"]
 resolver = "2"
 
 [package]
