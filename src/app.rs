@@ -3,7 +3,7 @@ use makepad_widgets::*;
 
 use crate::state::State;
 use crate::actions::OpenImage;
-use crate::tree::scan_directory;
+use crate::scan_worker::{ScanMsg, ScanWorker};
 
 static DBG_DRAW_COUNT: AtomicUsize = AtomicUsize::new(0);
 static DBG_TIMER_ID: AtomicU64 = AtomicU64::new(0);
@@ -79,11 +79,56 @@ script_mod! {
         State_bar {}
     }
 
+    // 后台扫描进度条：只在扫描期间显示，由 App 在 Event::Signal 中刷新。
+    // 填充比例通过 draw_bg 的 progress uniform 在 shader 里裁剪，无需改 layout。
+    let ScanBar = View {
+        width: Fill,
+        height: Fit,
+        flow: Right,
+        align: VCenter,
+        visible: false,
+        show_bg: true,
+        draw_bg +: { color: #x1a1a1f }
+        padding: Inset{ left: 12.0, top: 6.0, right: 12.0, bottom: 6.0 }
+
+        scan_spinner := LoadingSpinner {
+            width: 16,
+            height: 16,
+            margin: Inset{ right: 8.0 }
+        }
+        scan_status := Label {
+            text: "正在统计文件数…",
+            margin: Inset{ right: 8.0 }
+            draw_text +: { color: #c }
+        }
+        Filler {}
+        scan_fill := View {
+            width: 180,
+            height: 8,
+            margin: Inset{ right: 8.0 }
+            show_bg: true,
+            draw_bg +: {
+                color: #x54d5ff
+                progress: uniform(0.0)
+                pixel: fn() {
+                    let fill = 1.0 - smoothstep(self.progress - 0.004, self.progress + 0.004, self.pos.x);
+                    return self.color * fill;
+                }
+            }
+        }
+        scan_percent := Label {
+            width: 44,
+            text: "0%",
+            draw_text +: { color: #c }
+        }
+    }
+
     let ImageBrowser = View {
         width: Fill,
         height: Fill,
         flow: Down,
         MenuBar {}
+        scan_bar := ScanBar {}
         mod.widgets.ImageGrid {}
     }
 
@@ -240,33 +285,127 @@ pub struct App {
     ui: WidgetRef,
     #[rust]
     state: State,
+    /// 后台扫描句柄：worker 线程 + mpsc + SignalToUI 唤醒。
+    #[rust]
+    scan: ScanWorker,
 }
 
 impl App {
     fn load_image_paths(&mut self, cx: &mut Cx) {
+        let Some(p) = rfd::FileDialog::new().pick_folder() else {
+            return;
+        };
+        let path = p.to_path_buf();
+
         self.state.image_paths.clear();
+        self.state.filtered_image_idxs.clear();
         self.state.loaded_image_idxs.clear();
         self.state.thumb_textures.clear();
         self.state.thumb_order.clear();
         self.state.thumb_in_flight.clear();
-        // 递增代际，使旧文件夹遗留的后台解码结果在回传时被丢弃。
+        self.state.file_tree_data = None;
+        self.state.current_image_idx = None;
+        // 递增代际，使旧文件夹遗留的后台解码结果与旧扫描消息都被丢弃。
         self.state.generation = self.state.generation.wrapping_add(1);
-        if let Some(p) = rfd::FileDialog::new().pick_folder() {
-            let path = p.to_path_buf();
-            // 扫描逻辑复用公共 crate（与 Xilem 版一致）。
-            let scan = scan_directory(&path);
-            self.state.image_paths = scan.image_paths;
-            self.state.file_tree_data = Some(scan.tree);
-            self.state.file_tree_open = true;
-            let splitter = self.ui.splitter(cx, ids!(split_view));
-            splitter.set_align(cx, SplitterAlign::FromA(200.0));
-            self.ui.redraw(cx);
-            self.ui
-                .label(cx, ids!(all))
-                .set_text(cx, &format!("共: {}张", self.state.image_paths.len()));
-            // 当前无搜索输入框，直接显示全部图片
-            self.filter_image_paths(cx, "");
+
+        // 扫描交给后台线程：UI 立刻返回，靠 Event::Signal 分批回填。
+        // 扫描逻辑复用公共 crate（与 Xilem / gpui 版一致）。
+        self.scan.start(path, self.state.generation);
+
+        self.set_scan_bar_visible(cx, true);
+        let fill = self.ui.view(cx, ids!(scan_fill));
+        fill.set_uniform(cx, live_id!(progress), &[0.0]);
+        let status = self.ui.label(cx, ids!(scan_status));
+        status.set_text(cx, "正在统计文件数…");
+        let percent = self.ui.label(cx, ids!(scan_percent));
+        percent.set_text(cx, "0%");
+        let all = self.ui.label(cx, ids!(all));
+        all.set_text(cx, "扫描中…");
+        self.ui.redraw(cx);
+    }
+
+    /// worker 通过 `SignalToUI::set_ui_signal()` 唤醒 UI 后，在这里一次性消费
+    /// 队列里的所有批次：边扫边把图片追加到缩略图列表，并刷新进度条。
+    fn handle_scan_messages(&mut self, cx: &mut Cx) {
+        let messages = self.scan.poll();
+        if messages.is_empty() {
+            return;
         }
+        let generation = self.state.generation;
+        let mut needs_redraw = false;
+        for msg in messages {
+            // 切换文件夹后，旧 worker 的结果一律丢弃。
+            if msg.generation() != generation {
+                continue;
+            }
+            match msg {
+                ScanMsg::Started { .. } => {
+                    self.set_scan_bar_visible(cx, true);
+                    needs_redraw = true;
+                }
+                ScanMsg::Counted { .. } => {
+                    self.update_scan_progress(cx);
+                    needs_redraw = true;
+                }
+                ScanMsg::Batch { found, .. } => {
+                    for (idx, path) in found {
+                        // index 由 scanner 顺序生成，必须与 image_paths 下标严格对齐。
+                        if idx == self.state.image_paths.len() {
+                            self.state.image_paths.push(path);
+                            self.state.filtered_image_idxs.push(idx);
+                        }
+                    }
+                    self.update_scan_progress(cx);
+                    let all = self.ui.label(cx, ids!(all));
+                    all.set_text(cx, &format!("已发现: {}张", self.state.image_paths.len()));
+                    needs_redraw = true;
+                }
+                ScanMsg::Done { tree, .. } => {
+                    self.state.file_tree_data = Some(tree);
+                    self.state.file_tree_open = true;
+                    let splitter = self.ui.splitter(cx, ids!(split_view));
+                    splitter.set_align(cx, SplitterAlign::FromA(200.0));
+                    let all = self.ui.label(cx, ids!(all));
+                    all.set_text(cx, &format!("共: {}张", self.state.image_paths.len()));
+                    self.set_scan_bar_visible(cx, false);
+                    // 规范化过滤索引并加载第一张（与原同步版扫描完成后的行为一致）。
+                    self.filter_image_paths(cx, "");
+                    needs_redraw = true;
+                }
+            }
+        }
+        if needs_redraw {
+            self.ui.redraw(cx);
+        }
+    }
+
+    /// 进度条：shader uniform 控制填充比例，Label 显示百分比与当前文件名。
+    fn update_scan_progress(&self, cx: &mut Cx) {
+        let ratio = self.scan.progress();
+        let fill = self.ui.view(cx, ids!(scan_fill));
+        fill.set_uniform(cx, live_id!(progress), &[ratio]);
+
+        let percent = self.ui.label(cx, ids!(scan_percent));
+        percent.set_text(cx, &format!("{}%", (ratio * 100.0).round() as usize));
+
+        let status = if self.scan.total() == 0 {
+            "正在统计文件数…".to_string()
+        } else {
+            let short: String = self.scan.current().chars().take(32).collect();
+            format!(
+                "扫描中 {}/{} · {}",
+                self.scan.visited(),
+                self.scan.total(),
+                short
+            )
+        };
+        let label = self.ui.label(cx, ids!(scan_status));
+        label.set_text(cx, &status);
+    }
+
+    fn set_scan_bar_visible(&self, cx: &mut Cx, visible: bool) {
+        let bar = self.ui.view(cx, ids!(scan_bar));
+        bar.set_visible(cx, visible);
     }
     pub fn filter_image_paths(&mut self, cx: &mut Cx, query: &str) {
         self.state.filtered_image_idxs.clear();
@@ -360,6 +499,11 @@ impl AppMain for App {
     }
     fn handle_event(&mut self, cx: &mut Cx, event: &Event) {
         self.match_event(cx, event);
+        // 后台 worker 调 SignalToUI::set_ui_signal() 后，事件循环投递
+        // Event::Signal；在这里批量取回扫描增量并重绘。
+        if matches!(event, Event::Signal) {
+            self.handle_scan_messages(cx);
+        }
         if let Event::KeyDown(ke) = event {
             match ke.key_code {
                 KeyCode::Escape => {

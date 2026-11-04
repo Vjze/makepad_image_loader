@@ -16,6 +16,7 @@ pub mod state;
 pub mod actions;
 pub mod tree;
 pub mod thumb;
+pub mod scan_worker;
 pub mod widgets;
 pub mod app;
 pub fn script_mod(vm: &mut ScriptVm) {
