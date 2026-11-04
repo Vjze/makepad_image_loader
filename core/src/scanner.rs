@@ -39,6 +39,99 @@ pub struct ScanResult {
     pub tree: FileTreeData,
 }
 
+/// 流式扫描过程中产生的事件（框架无关，由 UI 层转成自己的消息）。
+#[derive(Clone, Debug)]
+pub enum ScanEvent {
+    /// 已访问的目录项数量、当前正在处理的名字（进度条分子）。
+    Progress { visited: usize, current: String },
+    /// 发现一张图片：`index` 即原始图片索引，与文件树节点的 `image_idx` 一致。
+    Found { index: usize, path: PathBuf },
+}
+
+/// 递归统计目录项总数，用作进度条分母。只列目录、不读文件内容，
+/// 因此比解码/扫描本身便宜得多；统计口径与 `scan_directory_streaming`
+/// 的 `visited` 完全一致（每个目录项计 1，子目录再递归累计）。
+pub fn count_entries(dir_path: &Path) -> usize {
+    fn count(dir: &Path) -> usize {
+        let Ok(rd) = std::fs::read_dir(dir) else {
+            return 0;
+        };
+        let mut n = 0;
+        for entry in rd.filter_map(Result::ok) {
+            n += 1;
+            let p = entry.path();
+            if p.is_dir() {
+                n += count(&p);
+            }
+        }
+        n
+    }
+    count(dir_path)
+}
+
+/// 流式递归扫描：每访问一个目录项回调一次 [`ScanEvent::Progress`]，每发现一张
+/// 图片回调一次 [`ScanEvent::Found`]，最后返回构建好的目录树。
+///
+/// UI 层可以一边收 `Found` 一边往缩略图列表里追加（边读边写），同时用
+/// `Progress` 驱动进度条，避免「一次性全量扫描完才刷新」造成的长时间无响应。
+pub fn scan_directory_streaming(
+    dir_path: &Path,
+    emit: &mut dyn FnMut(ScanEvent),
+) -> FileTreeNode {
+    fn build(
+        dir: &Path,
+        next_idx: &mut usize,
+        visited: &mut usize,
+        emit: &mut dyn FnMut(ScanEvent),
+    ) -> FileTreeNode {
+        let mut children = Vec::new();
+        if let Ok(rd) = std::fs::read_dir(dir) {
+            let mut entries: Vec<(String, std::fs::DirEntry)> = rd
+                .filter_map(Result::ok)
+                .map(|e| (e.file_name().to_string_lossy().to_string(), e))
+                .collect();
+            entries.sort_by(|a, b| a.0.cmp(&b.0));
+            for (name, entry) in entries {
+                *visited += 1;
+                emit(ScanEvent::Progress {
+                    visited: *visited,
+                    current: name.clone(),
+                });
+                let p = entry.path();
+                if p.is_dir() {
+                    children.push(build(&p, next_idx, visited, emit));
+                } else if p.is_file() && is_image_file(&name) {
+                    let image_idx = *next_idx;
+                    *next_idx += 1;
+                    emit(ScanEvent::Found {
+                        index: image_idx,
+                        path: p.clone(),
+                    });
+                    children.push(FileTreeNode {
+                        path: p.to_string_lossy().to_string(),
+                        name,
+                        image_idx: Some(image_idx),
+                        children: Vec::new(),
+                    });
+                }
+            }
+        }
+        FileTreeNode {
+            path: dir.to_string_lossy().to_string(),
+            name: dir
+                .file_name()
+                .map(|n| n.to_string_lossy().to_string())
+                .unwrap_or_else(|| "root".to_string()),
+            image_idx: None,
+            children,
+        }
+    }
+
+    let mut next_idx = 0;
+    let mut visited = 0;
+    build(dir_path, &mut next_idx, &mut visited, emit)
+}
+
 /// 递归扫描目录，返回所有图片路径与文件树。
 ///
 /// `image_paths` 的顺序即为「原始图片索引」(`image_idx`) 的语义，UI 层过滤/翻页都基于它。
