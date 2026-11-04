@@ -616,6 +616,7 @@ impl LocalFileTreeNode {
                 bottom: 0.0,
             },
             metrics: Metrics::default(),
+            ..Default::default()
         }
     }
 

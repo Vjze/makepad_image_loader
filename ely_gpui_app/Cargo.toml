@@ -4,12 +4,10 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-ely-core = { git = "https://github.com/ELY-Open-Source/Ely-GPUI-Components", package = "ely-core" }
+ely-core = { git = "https://github.com/ELY-Open-Source/Ely-GPUI-Components", package = "ely-core", features = ["platform"] }
 ely-media = { git = "https://github.com/ELY-Open-Source/Ely-GPUI-Components", package = "ely-media" }
 gpui = { package = "gpui-pre", version = "=0.3.10" }
-gpui_platform = { package = "gpui-pre-platform", version = "=0.3.10", features = ["font-kit"] }
+gpui_platform = { package = "gpui-pre-platform", version = "=0.3.10" } # 保留声明，但不需要手动写 features = [...] 了
 image_loader_core = { path = "../core" }
 rfd = "0.17.2"
-# 用于把原图下采样为小尺寸缩略图（与 image_loader_core 同版本/同特性），
-# 避免缩略图网格按原图分辨率解码导致显存/内存暴涨。
 image = { version = "0.25", default-features = false, features = ["png", "jpeg", "gif", "webp", "bmp", "ico", "tiff", "pnm"] }

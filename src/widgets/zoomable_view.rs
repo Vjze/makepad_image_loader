@@ -110,6 +110,7 @@ impl Widget for ZoomableView {
                 abs_pos: Some(rect.pos + dvec2((rect.size.x - zw) * 0.5, (rect.size.y - zh) * 0.5)),
                 margin: Inset::default(),
                 metrics: Default::default(),
+                ..Default::default()
             },
         )?;
         cx.shift_align_range(

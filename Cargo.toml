@@ -1,5 +1,6 @@
 [workspace]
-members = ["core", "xilem_app", "ely_gpui_app"]
+# members = ["core", "xilem_app", "ely_gpui_app"]
+members = ["core", "ely_gpui_app"]
 resolver = "2"
 
 [package]
@@ -8,7 +9,7 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-makepad-widgets = { git = "https://github.com/makepad/makepad.git", branch = "dev" }
+makepad-widgets = { git = "https://github.com/makepad/makepad.git", branch = "main" }
 image_loader_core = { path = "core" }
 rfd = "0.17.2"
 jwalk = "0.9"
