@@ -62,8 +62,10 @@ script_mod! {
                 fit: ImageFit.CropToFill,
                 margin: 4.0,
                 draw_bg +: {
-                    // 自定义圆角半径 uniform（DrawQuad 基类没有，需自行声明）
-                    border_radius: uniform(8.0)
+                    // Image 的 draw_bg（DrawImage）本身已有 f32 类型的 border_radius，
+                    // 这里只需赋值；写成 uniform(8.0) 会变成一个 uniform 声明对象，
+                    // 触发 "expected f32, got object" 的类型不匹配。
+                    border_radius: 8.0
                     pixel: fn() {
                         let sdf = Sdf2d.viewport(self.pos * self.rect_size)
                         sdf.box(0.0, 0.0, self.rect_size.x, self.rect_size.y, self.border_radius)
