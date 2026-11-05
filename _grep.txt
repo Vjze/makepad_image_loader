@@ -1,1 +1,0 @@
-﻿HEAD:src/app.rs:1115:                                    && let Ok(buf) = decode_image_from_data(&bytes)

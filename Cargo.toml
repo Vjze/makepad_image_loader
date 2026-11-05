@@ -8,7 +8,7 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-makepad-widgets = { git = "https://github.com/makepad/makepad.git", branch = "main" }
+makepad-widgets = { git = "https://github.com/makepad/makepad.git", branch = "release" }
 image_loader_core = { path = "core" }
 rfd = "0.17.2"
 jwalk = "0.9"
