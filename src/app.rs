@@ -1,9 +1,10 @@
-use std::sync::atomic::{AtomicU64, AtomicUsize, Ordering};
 use makepad_widgets::*;
+use std::path::PathBuf;
+use std::sync::atomic::{AtomicU64, AtomicUsize, Ordering};
 
-use crate::state::State;
 use crate::actions::OpenImage;
 use crate::scan_worker::{ScanMsg, ScanWorker};
+use crate::state::State;
 
 static DBG_DRAW_COUNT: AtomicUsize = AtomicUsize::new(0);
 static DBG_TIMER_ID: AtomicU64 = AtomicU64::new(0);
@@ -292,10 +293,16 @@ pub struct App {
 
 impl App {
     fn load_image_paths(&mut self, cx: &mut Cx) {
-        let Some(p) = rfd::FileDialog::new().pick_folder() else {
-            return;
+        // headless 验收：设 `MAKEPAD_FOLDER` 时跳过系统对话框（脚本无法驱动 rfd），
+        // 直接加载该目录，使 `MAKEPAD_HAL_SCRIPT` 能无交互复刻「加载文件夹→滚动→截图」。
+        let path = if let Some(folder) = std::env::var_os("MAKEPAD_FOLDER") {
+            PathBuf::from(folder)
+        } else {
+            let Some(p) = rfd::FileDialog::new().pick_folder() else {
+                return;
+            };
+            p.to_path_buf()
         };
-        let path = p.to_path_buf();
 
         self.state.image_paths.clear();
         self.state.filtered_image_idxs.clear();
@@ -498,6 +505,20 @@ impl AppMain for App {
         self::script_mod(vm)
     }
     fn handle_event(&mut self, cx: &mut Cx, event: &Event) {
+        // 首帧若 `MAKEPAD_FOLDER` 存在，自动加载该目录（绕过系统对话框），仅触发一次。
+        if matches!(event, Event::Draw(_)) && !self.state.bootstrapped {
+            self.state.bootstrapped = true;
+            if std::env::var_os("MAKEPAD_FOLDER").is_some() {
+                self.load_image_paths(cx);
+            }
+        }
+        // headless 自动化：后台扫描线程的 `SignalToUI` 在 offscreen 下可能不被自动化事件循环
+        // 泵到，导致扫描卡在 0%、缩略图永不出现、`wait_frame` 因等不到重绘而阻塞。这里在
+        // headless 模式下每帧主动消费扫描消息，保证无交互时扫描与缩略图也能推进。
+        // 正常交互模式仍走 `Event::Signal`，不受影响（此处不执行）。
+        if std::env::var_os("MAKEPAD_FOLDER").is_some() && matches!(event, Event::Draw(_)) {
+            self.handle_scan_messages(cx);
+        }
         self.match_event(cx, event);
         // 后台 worker 调 SignalToUI::set_ui_signal() 后，事件循环投递
         // Event::Signal；在这里批量取回扫描增量并重绘。
@@ -517,10 +538,9 @@ impl AppMain for App {
                 _ => {}
             }
         }
-        if matches!(event, Event::Draw(_))
-            && DBG_DRAW_COUNT.fetch_add(1, Ordering::Relaxed) == 0 {
-                DBG_TIMER_ID.store(cx.start_timeout(3.0).0, Ordering::Relaxed);
-            }
+        if matches!(event, Event::Draw(_)) && DBG_DRAW_COUNT.fetch_add(1, Ordering::Relaxed) == 0 {
+            DBG_TIMER_ID.store(cx.start_timeout(3.0).0, Ordering::Relaxed);
+        }
         let mut scope = Scope::with_data(&mut self.state);
         self.ui.handle_event(cx, event, &mut scope);
         if let Event::WindowDragQuery(dq) = event {
@@ -544,9 +564,10 @@ impl MatchEvent for App {
         // 真正的 OpenImage 包在 WidgetAction.action 里，需要两层 downcast。
         for action in actions.iter() {
             if let Some(wa) = action.downcast_ref::<WidgetAction>()
-                && let Some(open) = wa.action.downcast_ref::<OpenImage>() {
-                    self.handle_open_image(cx, open.image_index);
-                }
+                && let Some(open) = wa.action.downcast_ref::<OpenImage>()
+            {
+                self.handle_open_image(cx, open.image_index);
+            }
         }
         // App 壳控件（无独立组件）直接响应
         if self.ui.button(cx, ids!(search_btn)).clicked(actions) {
@@ -556,17 +577,18 @@ impl MatchEvent for App {
             self.open_slideshow(cx);
         }
         if self.ui.button(cx, ids!(filetree_btn)).clicked(actions)
-            && self.state.file_tree_data.is_some() {
-                self.state.file_tree_open = !self.state.file_tree_open;
-                let align = if self.state.file_tree_open {
-                    SplitterAlign::FromA(200.0)
-                } else {
-                    SplitterAlign::FromA(0.0)
-                };
-                let splitter = self.ui.splitter(cx, ids!(split_view));
-                splitter.set_align(cx, align);
-                self.ui.redraw(cx);
-            }
+            && self.state.file_tree_data.is_some()
+        {
+            self.state.file_tree_open = !self.state.file_tree_open;
+            let align = if self.state.file_tree_open {
+                SplitterAlign::FromA(200.0)
+            } else {
+                SplitterAlign::FromA(0.0)
+            };
+            let splitter = self.ui.splitter(cx, ids!(split_view));
+            splitter.set_align(cx, align);
+            self.ui.redraw(cx);
+        }
         if self.ui.button(cx, ids!(navigate_left)).clicked(actions) {
             self.navigate_left(cx);
         }

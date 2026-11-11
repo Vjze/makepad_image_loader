@@ -20,6 +20,9 @@ pub struct State {
     pub(crate) thumb_in_flight: HashSet<usize>,
     /// 文件夹加载代际：每次切换文件夹时递增，用于丢弃旧文件夹遗留的后台解码结果。
     pub(crate) generation: u64,
+    /// headless 自动加载标志：首帧若 `MAKEPAD_FOLDER` 环境变量存在则跳过系统对话框直接加载，
+    /// 加载一次后置位，避免每帧重复触发。
+    pub(crate) bootstrapped: bool,
 }
 
 impl State {
@@ -57,6 +60,7 @@ impl Default for State {
             thumb_order: Vec::new(),
             thumb_in_flight: HashSet::new(),
             generation: 0,
+            bootstrapped: false,
         }
     }
 }

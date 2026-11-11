@@ -14,7 +14,6 @@
 
 // 仅 release 构建隐藏控制台窗口；debug 构建（cargo run）保留控制台，便于查看诊断日志。
 #![cfg_attr(all(not(test), not(debug_assertions)), windows_subsystem = "windows")]
-
 use std::sync::{Arc, LazyLock, Mutex};
 use std::time::Instant;
 
@@ -22,34 +21,34 @@ use tokio::sync::mpsc::UnboundedSender;
 
 use image_loader_core::cache::ThumbnailCache;
 use image_loader_core::decode::decode_rgba8;
-use image_loader_core::scanner::{scan_directory, FileTreeNode, ScanResult};
+use image_loader_core::scanner::{FileTreeNode, ScanResult, scan_directory};
 use image_loader_core::thumbnail::{THUMB_MAX_BITMAPS, THUMB_MAX_IN_FLIGHT};
 
 use ui_events::keyboard::{Key, NamedKey};
 
 use xilem::core::{
-    fork, MessageCtx, MessageProxy, MessageResult, Mut, NoElement, View, ViewMarker,
+    MessageCtx, MessageProxy, MessageResult, Mut, NoElement, View, ViewMarker, fork,
 };
 use xilem::masonry::accesskit::{Node, Role};
 use xilem::masonry::core::{
-    AccessCtx, AccessEvent, ChildrenIds, EventCtx, LayoutCtx, MeasureCtx, PaintCtx,
-    PointerButton, PointerEvent, PointerGesture, PointerUpdate, PropertiesMut, PropertiesRef,
-    RegisterCtx, ScrollDelta, TextEvent, Widget, WidgetMut,
+    AccessCtx, AccessEvent, ChildrenIds, EventCtx, LayoutCtx, MeasureCtx, PaintCtx, PointerButton,
+    PointerEvent, PointerGesture, PointerUpdate, PropertiesMut, PropertiesRef, RegisterCtx,
+    ScrollDelta, TextEvent, Widget, WidgetMut,
 };
 use xilem::masonry::dpi::{LogicalSize, PhysicalPosition};
 use xilem::masonry::imaging::Painter;
 use xilem::masonry::kurbo::{Affine, Axis, Point, Size, Vec2};
 use xilem::masonry::layout::{AsUnit, Dim, LenReq, Length};
-use xilem::masonry::peniko::{
-    Color, ImageAlphaType, ImageBrush, ImageData, ImageFormat,
-};
+use xilem::masonry::peniko::{Color, ImageAlphaType, ImageBrush, ImageData, ImageFormat};
 use xilem::masonry::properties::{Dimensions, Padding};
 use xilem::style::Style as _;
 use xilem::view::{
-    button, flex_col, flex_row, indexed_stack, label, resize_observer, sized_box, split,
-    virtual_scroll, worker, AnyFlexChild, CrossAxisAlignment, FlexExt, FlexSpacer, ObjectFit,
+    AnyFlexChild, CrossAxisAlignment, FlexExt, FlexSpacer, ObjectFit, button, flex_col, flex_row,
+    indexed_stack, label, resize_observer, sized_box, split, virtual_scroll, worker,
 };
-use xilem::{AnyWidgetView, EventLoop, FontWeight, Pod, TextAlign, ViewCtx, WidgetView, WindowOptions, Xilem};
+use xilem::{
+    AnyWidgetView, EventLoop, FontWeight, Pod, TextAlign, ViewCtx, WidgetView, WindowOptions, Xilem,
+};
 
 // 主题色板（深色现代风）。
 const APP_BG: Color = Color::from_rgb8(20, 22, 28);
@@ -589,16 +588,15 @@ fn sidebar_view(state: &mut AppState) -> impl WidgetView<AppState> + use<> {
     let tree: Box<AnyWidgetView<AppState>> = if len == 0 {
         flex_col((
             label("尚未打开文件夹").text_size(12.0).color(TEXT_MUTED),
-            label("打开后这里显示目录树").text_size(11.0).color(TEXT_MUTED),
+            label("打开后这里显示目录树")
+                .text_size(11.0)
+                .color(TEXT_MUTED),
         ))
         .gap(Length::px(4.0))
         .padding(Padding::from_vh(4.0.px(), 6.0.px()))
         .boxed()
     } else {
-        virtual_scroll(len, move |s: &mut AppState, i: usize| {
-            node_row(s, i, &flat)
-        })
-        .boxed()
+        virtual_scroll(len, move |s: &mut AppState, i: usize| node_row(s, i, &flat)).boxed()
     };
     flex_col((
         label("文件列表").text_size(11.0).color(TEXT_MUTED),
@@ -644,8 +642,11 @@ fn content_view(state: &mut AppState) -> impl WidgetView<AppState> + use<> {
     // 因此彻底避开这个问题。背景由顶层 app_view 的 flex_col(APP_BG) 提供，此处透明即可。
     let slideshow_view = slideshow(state).boxed();
     let browser_view = image_browser(state).boxed();
-    indexed_stack::<AppState, _, _>((slideshow_view, browser_view))
-        .active(if state.in_slideshow { 0 } else { 1 })
+    indexed_stack::<AppState, _, _>((slideshow_view, browser_view)).active(if state.in_slideshow {
+        0
+    } else {
+        1
+    })
 }
 
 fn image_browser(state: &mut AppState) -> impl WidgetView<AppState> + use<> {
@@ -712,11 +713,15 @@ fn image_browser(state: &mut AppState) -> impl WidgetView<AppState> + use<> {
     };
     // 空状态时网格没有内容（0 行），提示占据整个区域并居中；
     // 有图片时提示消失，网格铺满。
-    let content = flex_col((empty_hint, observed)).cross_axis_alignment(CrossAxisAlignment::Stretch);
+    let content =
+        flex_col((empty_hint, observed)).cross_axis_alignment(CrossAxisAlignment::Stretch);
     let loading_view = loading.boxed();
     let content_view = content.boxed();
-    indexed_stack::<AppState, _, _>((loading_view, content_view))
-        .active(if state.scanning { 0 } else { 1 })
+    indexed_stack::<AppState, _, _>((loading_view, content_view)).active(if state.scanning {
+        0
+    } else {
+        1
+    })
 }
 
 fn slideshow(state: &mut AppState) -> impl WidgetView<AppState> + use<> {
@@ -759,8 +764,7 @@ fn slideshow(state: &mut AppState) -> impl WidgetView<AppState> + use<> {
         (None, None)
     };
     flex_row((
-        sized_box(arrow_button("‹", |s: &mut AppState| s.navigate_left()))
-            .width(Length::px(56.0)),
+        sized_box(arrow_button("‹", |s: &mut AppState| s.navigate_left())).width(Length::px(56.0)),
         flex_col((
             sized_box(ImageView {
                 image: disp_image,
@@ -794,8 +798,7 @@ fn slideshow(state: &mut AppState) -> impl WidgetView<AppState> + use<> {
         ))
         .cross_axis_alignment(CrossAxisAlignment::Stretch)
         .flex(1.0),
-        sized_box(arrow_button("›", |s: &mut AppState| s.navigate_right()))
-            .width(Length::px(56.0)),
+        sized_box(arrow_button("›", |s: &mut AppState| s.navigate_right())).width(Length::px(56.0)),
     ))
     .background_color(APP_BG)
 }
@@ -1064,10 +1067,7 @@ fn card_view(
 ) -> AnyFlexChild<AppState> {
     // 图片的像素尺寸直接从 brush 取（ImageBrush.image 是公开字段），
     // 用于计算 Cover 变换的缩放比例。
-    let img_size = Size::new(
-        brush.image.width as f64,
-        brush.image.height as f64,
-    );
+    let img_size = Size::new(brush.image.width as f64, brush.image.height as f64);
     // 卡片内边距 10 + 边框 1；图片再往里缩 4px（对齐 Makepad 版 image_card.rs
     // 里 thumb 的 margin: 4.0），让缩略图与卡片边框之间有一圈可见的留白。
     let inner = flex_col((
@@ -1103,30 +1103,36 @@ fn card_view(
         Dim::Fixed((card_w - CARD_INSET).px()),
         Dim::Fixed((CARD_H - CARD_INSET).px()),
     ));
-    sized_box(button(inner, move |s: &mut AppState| s.open_image(original_idx)))
-        // 卡片宽度**显式固定**为按内容区宽度算出的值，而不是靠 flex(1.0) 均分。
-        // 原因：masonry 的 Flex 在测主轴时 main_space 恒为 None，`FitContent` 会被降级为
-        // `MinContent`，flex_fraction 于是按子项的 MinContent（= 图片固有宽 490px）计算，
-        // 整行测量宽度 = Σ 卡片 MinContent ≫ 视口宽 → 视口里只显示得下 1~2 张卡片，
-        // 且最右一张被切掉（用户实机截图：视口 1011px 却出现 546px 的卡片、行宽 2232px）。
-        // 显式宽度后，整行测量宽度精确等于视口宽，卡片按列数自适应铺满。
-        // 注意必须用一次 `dims()` 同时设置宽高：Style 的 width()/height() 各自会以
-        // Dimensions::AUTO 为基底，后调用者会把先调用者的轴重置回 Auto。
-        .dims(Dimensions::new(
-            Dim::Fixed(card_w.px()),
-            Dim::Fixed(CARD_H.px()),
-        ))
-        .background_color(CARD_BG)
-        .corner_radius(14.0.px())
-        .border(BORDER, CARD_BORDER.px())
-        .padding(CARD_PAD.px())
-        // flex 因子为 0：卡片宽度已由 Dimensions 固定，不再参与 flex 均分；
-        // 这里只是为了能转换成 AnyFlexChild（xilem 的 flex 子项类型）。
-        .flex(0.0)
-        .into()
+    sized_box(button(inner, move |s: &mut AppState| {
+        s.open_image(original_idx)
+    }))
+    // 卡片宽度**显式固定**为按内容区宽度算出的值，而不是靠 flex(1.0) 均分。
+    // 原因：masonry 的 Flex 在测主轴时 main_space 恒为 None，`FitContent` 会被降级为
+    // `MinContent`，flex_fraction 于是按子项的 MinContent（= 图片固有宽 490px）计算，
+    // 整行测量宽度 = Σ 卡片 MinContent ≫ 视口宽 → 视口里只显示得下 1~2 张卡片，
+    // 且最右一张被切掉（用户实机截图：视口 1011px 却出现 546px 的卡片、行宽 2232px）。
+    // 显式宽度后，整行测量宽度精确等于视口宽，卡片按列数自适应铺满。
+    // 注意必须用一次 `dims()` 同时设置宽高：Style 的 width()/height() 各自会以
+    // Dimensions::AUTO 为基底，后调用者会把先调用者的轴重置回 Auto。
+    .dims(Dimensions::new(
+        Dim::Fixed(card_w.px()),
+        Dim::Fixed(CARD_H.px()),
+    ))
+    .background_color(CARD_BG)
+    .corner_radius(14.0.px())
+    .border(BORDER, CARD_BORDER.px())
+    .padding(CARD_PAD.px())
+    // flex 因子为 0：卡片宽度已由 Dimensions 固定，不再参与 flex 均分；
+    // 这里只是为了能转换成 AnyFlexChild（xilem 的 flex 子项类型）。
+    .flex(0.0)
+    .into()
 }
 
-fn node_row(_state: &mut AppState, i: usize, flat: &[FlatNode]) -> impl WidgetView<AppState> + use<> {
+fn node_row(
+    _state: &mut AppState,
+    i: usize,
+    flat: &[FlatNode],
+) -> impl WidgetView<AppState> + use<> {
     let node = &flat[i];
     let (marker, text_color) = if node.is_folder {
         if node.expanded {
@@ -1175,7 +1181,8 @@ fn node_row(_state: &mut AppState, i: usize, flat: &[FlatNode]) -> impl WidgetVi
 /// [`BgRequest::ThumbReady`]，再由本 worker 转成 [`BgResponse::ThumbReady`] 回主线程。
 fn bg_worker() -> impl View<AppState, (), ViewCtx, Element = NoElement> + use<> {
     worker(
-        |proxy: MessageProxy<BgResponse>, mut rx: tokio::sync::mpsc::UnboundedReceiver<BgRequest>| {
+        |proxy: MessageProxy<BgResponse>,
+         mut rx: tokio::sync::mpsc::UnboundedReceiver<BgRequest>| {
             async move {
                 eprintln!("DBG[worker] init_future started, waiting for requests...");
                 while let Some(req) = rx.recv().await {
@@ -1221,20 +1228,19 @@ fn bg_worker() -> impl View<AppState, (), ViewCtx, Element = NoElement> + use<> 
                         }
                         BgRequest::Decode(original_idx, path) => {
                             std::thread::spawn(move || {
-                                let result = decode_rgba8(&path)
-                                    .ok()
-                                    .map(|(w, h, rgba)| (rgba, w, h));
+                                let result =
+                                    decode_rgba8(&path).ok().map(|(w, h, rgba)| (rgba, w, h));
                                 eprintln!(
                                     "DBG[worker] decode done idx={original_idx} ok={}",
                                     result.is_some()
                                 );
-                                if let Err(e) =
-                                    proxy.message(BgResponse::DecodeDone(FullResult {
-                                        original_idx,
-                                        result,
-                                    }))
-                                {
-                                    eprintln!("DBG[worker] proxy.message(DecodeDone) FAILED: {e:?}");
+                                if let Err(e) = proxy.message(BgResponse::DecodeDone(FullResult {
+                                    original_idx,
+                                    result,
+                                })) {
+                                    eprintln!(
+                                        "DBG[worker] proxy.message(DecodeDone) FAILED: {e:?}"
+                                    );
                                 }
                             });
                         }
@@ -1263,18 +1269,20 @@ fn bg_worker() -> impl View<AppState, (), ViewCtx, Element = NoElement> + use<> 
             // 起一个桥接线程：把 ThumbnailCache 的 std 通道通知转发为 worker 请求。
             let bridge_tx = tx;
             let thumb_rx = state.thumb_rx.clone();
-            std::thread::spawn(move || loop {
-                let idx = {
-                    let guard = thumb_rx.lock().unwrap();
-                    guard.recv()
-                };
-                match idx {
-                    Ok(idx) => {
-                        if bridge_tx.send(BgRequest::ThumbReady(idx)).is_err() {
-                            break;
+            std::thread::spawn(move || {
+                loop {
+                    let idx = {
+                        let guard = thumb_rx.lock().unwrap();
+                        guard.recv()
+                    };
+                    match idx {
+                        Ok(idx) => {
+                            if bridge_tx.send(BgRequest::ThumbReady(idx)).is_err() {
+                                break;
+                            }
                         }
+                        Err(_) => break,
                     }
-                    Err(_) => break,
                 }
             });
         },
@@ -1315,11 +1323,7 @@ struct ImageViewWidget {
 }
 
 impl ImageViewWidget {
-    fn new(
-        image: Option<ImageBrush>,
-        img_size: Option<Size>,
-        fit: ObjectFit,
-    ) -> Self {
+    fn new(image: Option<ImageBrush>, img_size: Option<Size>, fit: ObjectFit) -> Self {
         Self {
             image,
             img_size,
@@ -1440,7 +1444,11 @@ impl Widget for ImageViewWidget {
                 let dpx = dphys.to_logical::<f64>(ctx.scale_factor());
                 let mag = (dpx.y.abs() / 200.0).clamp(0.005, 0.06);
                 // 向前滚动（dpx.y > 0）放大，向后缩小，围绕鼠标位置缩放。
-                let factor = if dpx.y > 0.0 { 1.0 + mag } else { 1.0 / (1.0 + mag) };
+                let factor = if dpx.y > 0.0 {
+                    1.0 + mag
+                } else {
+                    1.0 / (1.0 + mag)
+                };
                 let anchor = ctx.local_position(pse.state.position);
                 self.zoom_by(ctx, factor, anchor);
                 ctx.set_handled();
@@ -1682,8 +1690,7 @@ fn main() {
     let app = Xilem::new_simple(
         state,
         app_view,
-        WindowOptions::new("Image_Loader")
-            .with_initial_inner_size(LogicalSize::new(win_w, win_h)),
+        WindowOptions::new("Image_Loader").with_initial_inner_size(LogicalSize::new(win_w, win_h)),
     );
     if let Err(e) = app.run_in(event_loop) {
         eprintln!("应用退出：{e}");
@@ -1733,11 +1740,7 @@ mod tests {
             THUMB_RADIUS,
         ))
         .with_tag(tag);
-        let mut harness = TestHarness::create_with_size(
-            default_property_set(),
-            widget,
-            (100, 100),
-        );
+        let mut harness = TestHarness::create_with_size(default_property_set(), widget, (100, 100));
         let img = harness.render();
 
         // 中心应是实心蓝色。
@@ -1814,8 +1817,7 @@ mod tests {
                 .cross_axis_alignment(align)
                 .with(img, 1.0)
                 .prepare();
-            let harness =
-                TestHarness::create_with_size(default_property_set(), flex, (200, 300));
+            let harness = TestHarness::create_with_size(default_property_set(), flex, (200, 300));
             harness.get_widget(tag).ctx().border_box().size().width
         }
 
@@ -1907,7 +1909,7 @@ mod tests {
             RegisterCtx, Widget, WidgetPod,
         };
         use xilem::masonry::kurbo::{Axis, Point, Size};
-        use xilem::masonry::layout::{AsUnit, Dim, LenDef, LenReq, Length, LayoutSize, SizeDef};
+        use xilem::masonry::layout::{AsUnit, Dim, LayoutSize, LenDef, LenReq, Length, SizeDef};
         use xilem::masonry::peniko::{ImageAlphaType, ImageBrush, ImageData, ImageFormat};
         use xilem::masonry::properties::{BorderWidth, Dimensions, Gap, Padding};
         use xilem::masonry::testing::TestHarness;
@@ -1992,9 +1994,8 @@ mod tests {
                     height: 490,
                 })));
                 if stretch_image {
-                    img = img.with_props(PropertySet::one(
-                        Dimensions::AUTO.with_width(Dim::Stretch),
-                    ));
+                    img =
+                        img.with_props(PropertySet::one(Dimensions::AUTO.with_width(Dim::Stretch)));
                 }
                 let inner = Flex::column()
                     .cross_axis_alignment(CrossAxisAlignment::Stretch)
@@ -2006,12 +2007,13 @@ mod tests {
                     Some(w) => Dimensions::new(Dim::Fixed(w.px()), Dim::Fixed(200.0.px())),
                     None => Dimensions::AUTO.with_height(Dim::Fixed(200.0.px())),
                 };
-                let card = NewWidget::new(SizedBox::new(Button::new(inner).prepare()))
-                    .with_props(PropertySet::from((
+                let card = NewWidget::new(SizedBox::new(Button::new(inner).prepare())).with_props(
+                    PropertySet::from((
                         dims,
                         Padding::from_vh(10.0.px(), 10.0.px()),
                         BorderWidth::all(1.0.px()),
-                    )));
+                    )),
+                );
                 row = row.with(card, 1.0);
             }
             let row = row
@@ -2065,7 +2067,7 @@ mod tests {
             RegisterCtx, Widget, WidgetPod,
         };
         use xilem::masonry::kurbo::{Axis, Point, Size};
-        use xilem::masonry::layout::{AsUnit, Dim, LenDef, LenReq, Length, LayoutSize, SizeDef};
+        use xilem::masonry::layout::{AsUnit, Dim, LayoutSize, LenDef, LenReq, Length, SizeDef};
         use xilem::masonry::peniko::{Color, ImageAlphaType, ImageBrush, ImageData, ImageFormat};
         use xilem::masonry::properties::{
             Background, BorderWidth, CornerRadius, Dimensions, Gap, ObjectFit, Padding,
@@ -2174,14 +2176,13 @@ mod tests {
                 let img = NewWidget::new(Image::new(make_image(idx as u32)))
                     .with_tag(img_tag)
                     .with_props(PropertySet::one(ObjectFit::Contain));
-                let img_box = NewWidget::new(SizedBox::new(img))
-                    .with_props(PropertySet::from((
-                        Background::Color(Color::from_rgb8(14, 16, 21)),
-                        CornerRadius::all(8.0.px()),
-                    )));
-                let label_box = NewWidget::new(SizedBox::new(NewWidget::new(Label::new(
-                    format!("img_{idx:05}.png"),
-                ))))
+                let img_box = NewWidget::new(SizedBox::new(img)).with_props(PropertySet::from((
+                    Background::Color(Color::from_rgb8(14, 16, 21)),
+                    CornerRadius::all(8.0.px()),
+                )));
+                let label_box = NewWidget::new(SizedBox::new(NewWidget::new(Label::new(format!(
+                    "img_{idx:05}.png"
+                )))))
                 .with_props(PropertySet::one(Padding::from_vh(8.0.px(), 6.0.px())));
                 // 内层 flex_col 用**确定尺寸**，切断与图片固有尺寸（490px）的关联：
                 // 否则图片盒的 MinContent = 490 → flex_col 测量宽度被撑到 490 →
@@ -2205,24 +2206,16 @@ mod tests {
                     )));
                 row = row.with(card, 0.0);
             }
-            let row = row
-                .prepare()
-                .with_props(PropertySet::from((
-                    Gap::new(GAP.px()),
-                    Padding::from_vh(8.0.px(), PAD_X.px()),
-                )));
+            let row = row.prepare().with_props(PropertySet::from((
+                Gap::new(GAP.px()),
+                Padding::from_vh(8.0.px(), PAD_X.px()),
+            )));
             let child: WidgetPod<dyn Widget> = row.erased().to_pod();
-            outer = outer.with(
-                NewWidget::new(FitContainer { child }),
-                0.0,
-            );
+            outer = outer.with(NewWidget::new(FitContainer { child }), 0.0);
         }
         let root = outer.prepare();
-        let mut harness = TestHarness::create_with_size(
-            default_property_set(),
-            root,
-            (VIEW_W as u32, 700),
-        );
+        let mut harness =
+            TestHarness::create_with_size(default_property_set(), root, (VIEW_W as u32, 700));
         // 断言：每张图片都必须完整落在卡片内容区内（不能溢出、不能只剩一条细缝）。
         for tag in &img_tags {
             let w = harness.get_widget(*tag);
@@ -2244,7 +2237,11 @@ mod tests {
         let img = harness.render();
         let out = std::path::Path::new("_grid_render.png");
         img.save(out).unwrap();
-        println!("[render] 已保存 {}，全部 {} 张图片均在卡内", out.display(), img_tags.len());
+        println!(
+            "[render] 已保存 {}，全部 {} 张图片均在卡内",
+            out.display(),
+            img_tags.len()
+        );
     }
 
     /// 关键不变式：按 grid_cols 算出的列数下，每张卡片的实际宽度必须为正

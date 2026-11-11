@@ -16,15 +16,17 @@ use std::sync::mpsc::{channel, Receiver, Sender};
 use std::sync::{Arc, Mutex};
 use std::thread;
 
-use crate::decode::decode_rgba8;
-use crate::thumbnail::{downscale_rgba8, THUMB_MAX_DIM};
+use crate::decode::decode_rgba8_scaled;
+use crate::thumbnail::THUMB_MAX_DIM;
 
 /// 一张已解码的缩略图（RGBA8）。
 #[derive(Clone)]
 pub struct ThumbBitmap {
     pub width: usize,
     pub height: usize,
-    pub rgba: Arc<[u8]>,
+    /// 用 `Arc<Vec<u8>>` 而不是 `Arc<[u8]>`：后者是 unsized，无法 `try_unwrap`
+    /// 零拷贝取回缓冲区。deref 到 `&[u8]` 的调用方写法不变。
+    pub rgba: Arc<Vec<u8>>,
 }
 
 /// 共享缩略图缓存。
@@ -94,6 +96,46 @@ impl ThumbnailCache {
         self.bitmaps.lock().unwrap().get(&index).cloned()
     }
 
+    /// 取出并**移除**已解码位图，尽量零拷贝地把像素转成 `Vec<u8>`。
+    ///
+    /// 给 Rune 这类「自己维护可见行像素」的 UI 用：它把数据交给 `Pixels` 后，
+    /// 缓存里不需要再常驻第二份 RGBA。没有其他人持有这份像素时
+    /// `Arc::try_unwrap` 命中，`Box<[u8]> -> Vec<u8>` 是零拷贝。
+    pub fn take_rgba(&self, index: usize) -> Option<(usize, usize, Vec<u8>)> {
+        let bitmap = self.bitmaps.lock().unwrap().remove(&index)?;
+        // order 里可能还留着这个索引，顺手清掉，避免反复请求时队列无限增长。
+        self.order.lock().unwrap().retain(|i| *i != index);
+        let rgba = match Arc::try_unwrap(bitmap.rgba) {
+            Ok(owned) => owned,
+            Err(shared) => shared.as_ref().clone(),
+        };
+        Some((bitmap.width, bitmap.height, rgba))
+    }
+
+    /// 把一份已解码位图放回 LRU（不触发 ready 通知，避免唤醒循环）。
+    ///
+    /// UI 收到 ready 时若该图已滚出视口，就把数据退回来而不是丢掉：
+    /// 滚回时可以直接取用，不必重新解码，也不会出现空白卡片。
+    pub fn put_rgba(&self, index: usize, width: usize, height: usize, rgba: Vec<u8>) {
+        let bitmap = ThumbBitmap {
+            width,
+            height,
+            rgba: Arc::new(rgba),
+        };
+        let mut bm = self.bitmaps.lock().unwrap();
+        let mut order = self.order.lock().unwrap();
+        bm.insert(index, bitmap);
+        order.retain(|i| *i != index);
+        order.push_back(index);
+        while bm.len() > self.max_bitmaps {
+            if let Some(victim) = order.pop_front() {
+                bm.remove(&victim);
+            } else {
+                break;
+            }
+        }
+    }
+
     /// 请求解码某索引。若该索引已存在、在途或达在途上限，则忽略。
     ///
     /// 解码在后台线程完成，成功后写入缓存（LRU 淘汰）并通过 `ready_rx` 通知。
@@ -109,9 +151,8 @@ impl ThumbnailCache {
         let cache: Arc<Self> = Arc::clone(self);
         let generation = *self.generation.lock().unwrap();
         thread::spawn(move || {
-            let result = decode_rgba8(&path)
-                .ok()
-                .and_then(|(w, h, d)| downscale_rgba8(&d, w as usize, h as usize, THUMB_MAX_DIM));
+            // 解码时就缩到 THUMB_MAX_DIM，不再先物化全尺寸 RGBA8 再下采样。
+            let result = decode_rgba8_scaled(&path, THUMB_MAX_DIM as u32).ok();
             // 先移除在途标记，再决定是否落库（顺序无关紧要，锁很短）。
             cache.in_flight.lock().unwrap().remove(&index);
             let Some((w, h, rgba)) = result else {
@@ -122,9 +163,9 @@ impl ThumbnailCache {
                 return;
             }
             let bitmap = ThumbBitmap {
-                width: w,
-                height: h,
-                rgba: Arc::from(rgba),
+                width: w as usize,
+                height: h as usize,
+                rgba: Arc::new(rgba),
             };
             let mut bm = cache.bitmaps.lock().unwrap();
             let mut order = cache.order.lock().unwrap();
@@ -142,5 +183,49 @@ impl ThumbnailCache {
                 let _ = tx.send(index);
             }
         });
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn seed(cache: &ThumbnailCache, index: usize, rgba: Vec<u8>) -> *const u8 {
+        let bitmap = ThumbBitmap {
+            width: 2,
+            height: 1,
+            rgba: Arc::new(rgba),
+        };
+        let ptr = bitmap.rgba.as_ptr();
+        cache.bitmaps.lock().unwrap().insert(index, bitmap);
+        cache.order.lock().unwrap().push_back(index);
+        ptr
+    }
+
+    #[test]
+    fn take_rgba_moves_the_buffer_without_copying_when_unshared() {
+        let (cache, _rx) = ThumbnailCache::new(8, 2);
+        let data = vec![1u8, 2, 3, 4, 5, 6, 7, 8];
+        let ptr = seed(&cache, 7, data.clone());
+
+        let (w, h, got) = cache.take_rgba(7).expect("bitmap should be delivered");
+        assert_eq!((w, h), (2, 1));
+        assert_eq!(got, data);
+        assert_eq!(got.as_ptr(), ptr, "unshared bitmap must be moved, not copied");
+        assert!(cache.take_rgba(7).is_none(), "delivery removes the cached copy");
+        assert!(cache.order.lock().unwrap().is_empty(), "LRU order is cleaned");
+    }
+
+    #[test]
+    fn take_rgba_falls_back_to_a_copy_when_the_bitmap_is_shared() {
+        let (cache, _rx) = ThumbnailCache::new(8, 2);
+        let ptr = seed(&cache, 3, vec![9u8; 8]);
+        let shared = cache.get(3).expect("seeded");
+        assert!(Arc::strong_count(&shared.rgba) > 1);
+
+        let (w, h, got) = cache.take_rgba(3).expect("bitmap should be delivered");
+        assert_eq!((w, h), (2, 1));
+        assert_eq!(got, vec![9u8; 8]);
+        assert_ne!(got.as_ptr(), ptr, "shared bitmap has to be cloned");
     }
 }

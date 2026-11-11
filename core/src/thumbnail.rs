@@ -5,7 +5,11 @@
 //! - `rgba8_to_argb_u32`：把 RGBA8 转成 Makepad 纹理期望的 `0xAARRGGBB` 像素序。
 
 /// 缩略图最长边上限（像素）。
-pub const THUMB_MAX_DIM: usize = 512;
+///
+/// 卡片显示区域约 240×266，256 已足够（含高 DPI 下 2 倍以内仍可接受）。
+/// 这个值同时决定解码后的 RGBA8 常驻副本与 Rune 图集 slot 的尺寸，
+/// 从 512 降到 256 可让两者各降约 4 倍，是最省事的内存优化。
+pub const THUMB_MAX_DIM: usize = 256;
 /// 同时在途的解码任务上限（防止一次性起太多线程）。
 pub const THUMB_MAX_IN_FLIGHT: usize = 8;
 /// 缓存的已解码位图数量上限（LRU 淘汰）。
