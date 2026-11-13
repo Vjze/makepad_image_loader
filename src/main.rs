@@ -15,7 +15,6 @@ fn main() {
             unsafe { std::env::set_var("MAKEPAD_WAYLAND_DECORATION", "client") };
         }
     }
-
     // app_main! 在 app.rs 里生成的 fn main() 位于模块内部，并不是二进制入口；
     // 这里直接调用 app_main() 会跳过 run_app()，而新版 makepad 的 Linux HAL
     // 要求把进程主线程交给 HAL（expect_main_loop / run_main_loop），否则
