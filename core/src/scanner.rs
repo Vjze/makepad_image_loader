@@ -6,8 +6,18 @@
 use std::path::{Path, PathBuf};
 
 /// 支持的图片扩展名（小写比较）。
+///
+/// `.tiff/.tif` 只在 `tiff` feature 启用时纳入扫描——该 feature 默认关闭，
+/// 关闭时 `image` crate 不具备 TIFF 解码能力。`.avif` 同理从未在 features 中，
+/// 已从列表移除，避免「扫描得到却一定解码失败」。
+#[cfg(not(feature = "tiff"))]
 pub const IMAGE_EXTS: &[&str] = &[
-    ".png", ".jpeg", ".jpg", ".webp", ".pnm", ".ico", ".avif", ".gif", ".bmp", ".tiff", ".tif",
+    ".png", ".jpeg", ".jpg", ".webp", ".pnm", ".ico", ".gif", ".bmp",
+];
+
+#[cfg(feature = "tiff")]
+pub const IMAGE_EXTS: &[&str] = &[
+    ".png", ".jpeg", ".jpg", ".webp", ".pnm", ".ico", ".gif", ".bmp", ".tiff", ".tif",
 ];
 
 /// 判断文件名是否为图片（大小写不敏感）。

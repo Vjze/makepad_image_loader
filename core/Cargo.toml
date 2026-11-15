@@ -4,5 +4,17 @@ version = "0.1.0"
 edition = "2024"
 description = "Shared, framework-agnostic logic for the image loader: folder scanning, decoding, thumbnail generation and an LRU thumbnail cache."
 
+[features]
+default = []
+# TIFF 支持默认关闭。image 的 `tiff` feature 会拉进
+# tiff -> half -> zerocopy -> zerocopy-derive，这是本工作区唯一的第三方 proc macro，
+# 且源码含 unsafe，会被 `makepad run`/`makepad check` 的 pmhost::Policy::Sandboxed
+# 拒绝展开（72 unresolved imports / 17 errors）。
+# 需要 .tif/.tiff 时用普通 cargo 构建：
+#   cargo run -p img_loader --features image_loader_core/tiff
+# 注意：在 `makepad run`/`makepad check` 下启用该 feature 会重新引入 zerocopy-derive，
+# 依旧会被 Sandboxed 策略拒绝；JIT + TIFF 需等上游放宽 policy。
+tiff = ["image/tiff"]
+
 [dependencies]
-image = { version = "0.25", default-features = false, features = ["png", "jpeg", "gif", "webp", "bmp", "ico", "tiff", "pnm"] }
+image = { version = "0.25", default-features = false, features = ["png", "jpeg", "gif", "webp", "bmp", "ico", "pnm"] }
